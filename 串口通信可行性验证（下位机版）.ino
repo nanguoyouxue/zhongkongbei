@@ -1,8 +1,10 @@
-//串口通信可行性验证（下位机版）1.0 beta
+//串口通信可行性验证（下位机版）1.1
 //by czl
-//2019/02/26/14:52
+//2019/02/27/09:57
 /*
  * 实现功能：当下位机发现指南针传感器指向北方（±2°）时，向上位机发送指令#00！（只发送一次），上位机收到指令后向机械臂发送指令，使之运动。
+ * 1.改进了几个BUG
+ * 2.arduino-->上位机通信验证完成
  */
 
 #include <SoftwareSerial.h>//软串口通信库函数
@@ -30,13 +32,16 @@ void loop()
         byte Byte5 = mySerial.read();
         byte Byte6 = mySerial.read();
         byte Byte7 = mySerial.read();
-        CompassAngle=(Byte2-0x30)*100+(Byte3-0x30)*10+(Byte4-0x30)+(Byte6-0x30)*0.1;
-        if(CompassAngle<=2||CompassAngle>=358)
-        Serial.print("#00!");//向硬串口发送指令
+        CompassAngle=(Byte2-0x30)*100+(Byte3-0x30)*10+(Byte4-0x30)+(Byte6-0x30)*0.1;//算出角度
+        if(CompassAngle<=2||CompassAngle>=358){
+          Serial.print("#00!");//向硬串口发送指令
+          delay(3000000);//如果发送了数据，则暂停3000s
+        }
+        
     }
     
     while(mySerial.available())
     byte Byte0 = mySerial.read();//清空缓冲区
     
-    delay(3000000);//延时300秒
+    delay(30);//每次测定都延时30ms
 }
