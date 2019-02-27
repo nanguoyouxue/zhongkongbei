@@ -1,10 +1,11 @@
-﻿//串口通信可行性验证（上位机版） 1.1 beta
+//串口通信可行性验证（上位机版） 1.2
 /*实现功能：当下位机发现指南针传感器指向北方（±2°）时，向上位机发送指令#00！（只发送一次），上位机收到指令后向机械臂发送指令，使之运动。
-  1.添加部分注释
-  2.修改程序逻辑BUG
+1.添加部分注释
+2.修改程序逻辑BUG
+3.串口通信可行性验证通过
 */
 //by czl
-//2019/02/27/
+//2019/02/27/13:16
 
 #include "stdafx.h"
 #include <stdio.h>
@@ -24,7 +25,7 @@ char psendbuf[99];//输出的信息保存在该字符串中
 DCB myDCB;//初始化串口配置信息DCB结构
 HANDLE m_hComm;//串口句柄，定义串口变量
 
-//下位机串口定义
+			   //下位机串口定义
 DWORD dwLength0;//输入缓冲区的大小（字节数）
 char recvBuf0[10];//输入的信息保存在该字符串中
 DWORD dwactlen0;//输出缓冲区的大小（字节数）
@@ -32,27 +33,27 @@ char psendbuf0[99];//输出的信息保存在该字符串中
 DCB myDCB0;//初始化串口配置信息DCB结构
 HANDLE m_hComm0;//串口句柄，定义串口变量
 
-//机械臂相关函数
+				//机械臂相关函数
 bool COM3();//COM3（机械臂）接口初始化函数
 void hello();//接收机械臂arduino板打招呼信息
 void arm(char *);//向机械臂发送数据
 
-//下位机相关函数
+				 //下位机相关函数
 bool COM5();//COM5（下位机）接口初始化函数
 void ReadingUNO();//读取下位机发送的指令
 int explain();//下位机指令解析函数
 
-//其他杂项函数
+			  //其他杂项函数
 void Close();//关闭串口等程序关闭前的准备工作
-//-------(￣▽￣)／程序开始---------
-int main(){
+			 //-------(￣▽￣)／程序开始---------
+int main() {
 	//串口准备
 	if (COM3() == FALSE) return 0;//COM3（机械臂）接口初始化
 	hello();//接收打招呼信息，准备完毕
 
 	if (COM5() == FALSE) return 0;//COM5（下位机）接口初始化
 
-	//开始工作
+								  //开始工作
 	ReadingUNO();//开始接收arduino发出的指令
 	if (explain() == 0) {
 		//开始对机械臂发出指令
@@ -64,7 +65,7 @@ int main(){
 	else if (explain() == 1) {
 		return 0;
 	}
-	
+
 	Close();
 	return 0;
 }
@@ -134,7 +135,7 @@ loop:m_hComm = CreateFile(//打开端口
 	 TimeOuts.ReadIntervalTimeout = 1000;//读间隔超时(指在接收时两个字符之间的最大时延)
 	 TimeOuts.ReadTotalTimeoutMultiplier = 100;//读时间系数
 	 TimeOuts.ReadTotalTimeoutConstant = 10;//读时间常量
-											  //设定写超时（写没有间隔超时函数）
+											//设定写超时（写没有间隔超时函数）
 	 TimeOuts.WriteTotalTimeoutMultiplier = 50;//写时间系数
 	 TimeOuts.WriteTotalTimeoutConstant = 20;//写时间常量
 											 //总超时的计算
@@ -165,7 +166,7 @@ void hello() {
 	printf("开始发送机械臂舵机指令……\n");
 }
 
-void arm(char *psendbuf){
+void arm(char *psendbuf) {
 	WriteFile(m_hComm, psendbuf, 99, &dwactlen, NULL);
 	PurgeComm(m_hComm, PURGE_TXCLEAR);//每次发完指令都要清空输出寄存器
 	Sleep(1800);//延时1.8秒，延时是为了等待机械臂完成指令以后再发出下一个指令（中间还有电脑与机械臂传输数据，处理数据的时间），可根据实际情况调整
@@ -206,11 +207,11 @@ loop:m_hComm0 = CreateFile(//打开端口
 	 myDCB0.fDtrControl = DTR_CONTROL_DISABLE; // 指定DTR不进行流量控制
 	 myDCB0.fDsrSensitivity = FALSE; // 指定通信驱动程序对DTR信号线是否敏感，如果该位置设为TRUE时，DSR信号为OFF，接收的任何字节将被忽略。
 	 myDCB0.fTXContinueOnXoff = TRUE; //  指定当接收缓冲区已满，并且驱动程序已经发送出XoffChar字符时发送是否停止。
-									 //当该成员为TRUE时，在接收缓冲区内接收到了缓冲区已满的字节XoffLim，并且驱动程序已经发送出XoffChar字符终止接收字节之后，发送继续进行。
-									 //该成员为FALSE时，接收缓冲区接收到代表缓冲区已空的字节XonLim，并且驱动程序已经发送出恢复发送的XonChar字符后，发送可以继续进行。
+									  //当该成员为TRUE时，在接收缓冲区内接收到了缓冲区已满的字节XoffLim，并且驱动程序已经发送出XoffChar字符终止接收字节之后，发送继续进行。
+									  //该成员为FALSE时，接收缓冲区接收到代表缓冲区已空的字节XonLim，并且驱动程序已经发送出恢复发送的XonChar字符后，发送可以继续进行。
 	 myDCB0.fOutX = FALSE;     //不用XoffChar进行发送控制，该成员为TRUE时，接收到XoffChar之后停止发送，接收到XonChar之后发送将重新开始。 
 	 myDCB0.fInX = FALSE;        //该成员为TRUE时，接收缓冲区内接收到代表缓冲区满的字节XoffLim之后，XoffChar发送出去，
-								//接收缓冲区接收到代表缓冲区已空的字节XonLim之后，XonChar发送出去。 
+								 //接收缓冲区接收到代表缓冲区已空的字节XonLim之后，XonChar发送出去。 
 	 myDCB0.fErrorChar = FALSE;    //当该成员与奇偶校验同时开启时，就会用ErrorChar成员指定的字符来代替奇偶校验错误的接收字符。
 	 myDCB0.fNull = FALSE;  //接收值为NULL的输入数据
 	 myDCB0.fRtsControl = RTS_CONTROL_DISABLE;   //指定RTS不进行流量控制 
@@ -219,7 +220,7 @@ loop:m_hComm0 = CreateFile(//打开端口
 	 myDCB0.Parity = NOPARITY; //无奇偶校验模式
 	 myDCB0.StopBits = 0;   //1位停止位 
 
-						   //如果串口参数修改失败，返回FALSE
+							//如果串口参数修改失败，返回FALSE
 
 	 if (!SetCommState(m_hComm0, &myDCB0)) {
 		 printf("设置下位机串口失败\n");
@@ -229,14 +230,14 @@ loop:m_hComm0 = CreateFile(//打开端口
 	 SetupComm(m_hComm0, 1024, 1024);//设置串口的输入/输出缓冲区大小
 	 PurgeComm(m_hComm0, PURGE_RXCLEAR | PURGE_TXCLEAR);//清空缓冲区，作为初始化
 
-													   //超时的作用是在指定的时间内没有读入或发送指定数量的字符，ReadFile或WriteFile的操作仍然会结束。
-													   //超时设置
+														//超时的作用是在指定的时间内没有读入或发送指定数量的字符，ReadFile或WriteFile的操作仍然会结束。
+														//超时设置
 	 COMMTIMEOUTS TimeOuts;
 	 //设定读超时（---------注意：下位机arduino程序中有各种延时，务必计算仔细-------------)
 	 TimeOuts.ReadIntervalTimeout = 1000;//读间隔超时(指在接收时两个字符之间的最大时延)
 	 TimeOuts.ReadTotalTimeoutMultiplier = 500;//读时间系数
 	 TimeOuts.ReadTotalTimeoutConstant = 1000;//读时间常量
-											//设定写超时（写没有间隔超时函数）
+											  //设定写超时（写没有间隔超时函数）
 	 TimeOuts.WriteTotalTimeoutMultiplier = 50;//写时间系数
 	 TimeOuts.WriteTotalTimeoutConstant = 20;//写时间常量
 											 //总超时的计算
@@ -251,20 +252,19 @@ loop:m_hComm0 = CreateFile(//打开端口
 void ReadingUNO() {
 	recvBuf0[0] = 'N';//把第一位作为识别位，用来判断是否读入指令
 	printf("下位机指令读取中……\n");
-	while (recvBuf0[0]=='N') {
+	while (recvBuf0[0] == 'N') {//如果没有读到下位机发送的指令，则不断重复读取
 		ReadFile(m_hComm0, recvBuf0, 4, &dwLength0, NULL);//读入下位机指令
-		printf_s("%c",recvBuf0[0]);
 		PurgeComm(m_hComm, PURGE_RXCLEAR);//清空输入缓冲区
 	}
 	printf_s("收到下位机发送的指令：%s\n", recvBuf0);
 }
 
 int explain() {//指令格式为#XX！（X可为0-9和a-Z）
-	if(recvBuf0[0]=='#'&&recvBuf0[3]=='!')
+	if (recvBuf0[0] == '#'&&recvBuf0[3] == '!')
 		if (recvBuf0[1] == '0'&&recvBuf0[2] == '0') {
 			printf("启动机械臂！\n");
 			return 0;
-		}	
+		}
 		else printf("下位机命令无效\n");
 	else printf("下位机命令格式非法\n");
 	return 1;
