@@ -1,10 +1,10 @@
 ﻿//串口通信可行性验证（上位机版） 1.1 beta
 /*实现功能：当下位机发现指南针传感器指向北方（±2°）时，向上位机发送指令#00！（只发送一次），上位机收到指令后向机械臂发送指令，使之运动。
   1.添加部分注释
-  2.修改程序错误
+  2.修改程序逻辑BUG
 */
 //by czl
-//2019/02/22:46
+//2019/02/27/
 
 #include "stdafx.h"
 #include <stdio.h>
@@ -251,8 +251,9 @@ loop:m_hComm0 = CreateFile(//打开端口
 void ReadingUNO() {
 	recvBuf0[0] = 'N';//把第一位作为识别位，用来判断是否读入指令
 	printf("下位机指令读取中……\n");
-	if (recvBuf0[0]!='N') {
+	while (recvBuf0[0]=='N') {
 		ReadFile(m_hComm0, recvBuf0, 4, &dwLength0, NULL);//读入下位机指令
+		printf_s("%c",recvBuf0[0]);
 		PurgeComm(m_hComm, PURGE_RXCLEAR);//清空输入缓冲区
 	}
 	printf_s("收到下位机发送的指令：%s\n", recvBuf0);
