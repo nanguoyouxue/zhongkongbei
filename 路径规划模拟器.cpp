@@ -1,9 +1,9 @@
-//路径规划模拟器 1.1 beta
+//路径规划模拟器 1.3 beta
 /*
-实现功能：在地图中快速规划路线
+实现功能：提供小车在货架与货架之间的路径解决方案
 */
 //by czl
-//2019/02/29/21:46
+//2019/03/14/23:20
 
 #include "stdafx.h"
 #include <stdio.h>
@@ -17,22 +17,20 @@
 int spot[12][12] = { {1,1,1,1,1,1,1,1,1,1,1,1},{1,0,0,0,0,0,0,0,0,0,0,1},{1,0,0,0,0,0,0,0,0,0,0,1},{1,0,0,0,0,0,0,0,0,0,0,1},{1,0,0,0,1,1,1,1,0,0,0,1},{1,0,0,0,1,1,1,1,0,0,0,1},{1,0,0,0,1,1,1,1,0,0,0,1},{1,0,0,0,1,1,1,1,0,0,0,1},{1,0,0,0,0,0,0,0,0,0,0,1},{1,0,0,0,0,0,0,0,0,0,0,1},{1,0,0,0,0,0,0,0,0,0,0,1},{1,1,1,1,1,1,1,1,1,1,1,1} };//0为可以到达的点，1为不可到达的点（包括货架与障碍物）
 int flag0;//标记障碍物位置
 int m, n, x, y,a,b;//分别是开始点和结束点和过程坐标
-int row;//排
-int line;//列
-//对几种情况的不同方案
-void Type1(int,int);
-void Type2(int,int);
-void Type3(int,int);
-void Type4(int,int);
-void Type5(int,int);
-void Type6(int,int);
-void Type7(int,int);
-void Type8(int,int);
-void Type14(int, int);
-void print(int,int);//打印坐标
+int flag1=0;//记录所走步数
+int flag2=0;//记录转弯数
+int flag3[20];//记录每一步的前进方向，初始值0，上1，右2，下3，左4，这个数组也是从1开始计数的
+int number=1;//记录现在试探到第几步,从1开始计数
+int best = 100;//记录最好的成绩
+int bestroad[20];//保存最优路径
+int beststep;//保存最优步数
+
+void shitan();
+
 
 //-------(￣▽￣)／程序开始---------
 int main() {
+	memset(flag3, 0, sizeof(flag3));
 	scanf_s("%d %d", &m, &n);//输入开始点
 	scanf_s("%d %d", &x, &y);//输入结束点
 	scanf_s("%d", &flag0);//输入障碍点
@@ -45,482 +43,86 @@ int main() {
 	case 5:spot[2][2] = 1; break;
 	case 6:spot[2][5] = 1; break;
 	}
-	row = m - x;
-	line = n - y;//计算横纵坐标差
+	
 	a = m;
 	b = n;//开始在出发点
+	
+	shitan();
 
-	/*讨论十六种不同可能*/
-	if (row >= 0 && line >= 0 && abs(row) >= abs(line)&&(n+y)<=11)
-		Type1(a,b);
-	else if (row >= 0 && line >= 0 && abs(row) >= abs(line)&&(n+y)>11)
-		Type2(a,b);
-	else if (row < 0 && line < 0 && abs(row) >= abs(line)&& (n + y) <= 11)
-		Type3(a,b);
-	else if (row < 0 && line < 0 && abs(row) >= abs(line)&&(n+y)>11)
-		Type4(a,b);
-	else if (row >= 0 && line >= 0 && abs(row) < abs(line)&&(m+x)<=11)
-		Type5(a,b);
-	else if (row >= 0 && line >= 0 && abs(row) < abs(line)&&(m+x)>11)
-		Type6(a,b);
-	else if (row < 0 && line < 0 && abs(row) < abs(line)&&(m+x)<=11)
-		Type7(a,b);
-	else if (row < 0 && line < 0 && abs(row) < abs(line)&&(m+x)>11)
-		Type8(a,b);
-	else if (row >= 0 && line < 0 && abs(row) >= abs(line) && (n+y)<=11)
-		Type1(a, b);
-	else if (row >= 0 && line < 0 && abs(row) >= abs(line) && (n+y)>11)
-		Type2(a, b);
-	else if (row < 0 && line >= 0 && abs(row) >= abs(line) && (n+y)<=11)
-		Type3(a, b);
-	else if (row < 0 && line >= 0 && abs(row) >= abs(line) && (n+y)>11)
-		Type4(a, b);
-	else if (row >= 0 && line < 0 && abs(row) < abs(line) && (m + x)<=11)
-		Type5(a, b);
-	else if (row >= 0 && line < 0 && abs(row) < abs(line) && (m + x)>11)
-		Type14(a, b);
-	else if (row < 0 && line >= 0 && abs(row) < abs(line) && (m + x)<=11)
-		Type7(a, b);
-	else if (row < 0 && line >= 0 && abs(row) < abs(line) && (m + x)>11)
-		Type8(a, b);
+	for (int k = 1; k < beststep; k++) {
+		if (bestroad[k] == 1)printf_s("上\n");
+		else if (bestroad[k] == 2)printf_s("右\n");
+		else if (bestroad[k] == 3)printf_s("下\n");
+		else if (bestroad[k] == 4)printf_s("左 \n");
+	}
+	
 	
 	return 0;
 }
 
-void Type1(int a,int b) {
-	if (a == x && b == y) {//到达结束点后退出递归
-		printf("到达！\n");
-		return;
-	}
-	if (a > x) {
-		if (spot[a - 1][b] == 1) {
-			b -= 1;
+
+void shitan() {
+	if (a == x && b == y) {
+		if (flag1 + flag2 < best) {
+			for (int k = 1; k < number; k++) 
+				bestroad[k] = flag3[k];
+			best = flag1 + flag2;
+			beststep = number;
 		}
-		else {
-			a -= 1;
-		}
-		print(a,b);
-		Type1(a, b);
-		return;
-	}
-	else if (b < y) {
-		if (spot[a][b + 1] == 1) {
-			a -= 1;
-		}
-		else {
-			b += 1;
-		}
-		print(a,b);
-		Type1(a, b);
-		return;
-	}
-	else if (b > y) {
-		if (spot[a][b - 1] == 1) {
-			a -= 1;
-		}
-		else {
-			b -= 1;
-		}
-		print(a, b);
-		Type1(a, b);
-		return;
-	}
-	else if (b==y) {
-		a += 1;
-		print(a,b);
-		Type1(a, b);
-		return;
 	}
 
-	return;
-}
+	if (abs(a - x) + abs(b - y) > 15 && flag1 == 5)return;
+	if (abs(a - x) + abs(b - y) > 12 && flag1 == 8)return;
+	if (abs(a - x) + abs(b - y) > 8 && flag1 == 12)return;
+	if (abs(a - x) + abs(b - y) > 5 && flag1 == 15)return;
+	if (flag1 > 18)return;
 
-void Type2(int a, int b) {
-	if (a == x && b == y) {//到达结束点后退出递归
-		printf("到达！\n");
-		return;
-	}
-	if (a > x) {
-		if (spot[a - 1][b] == 1) {
-			b += 1;
-		}
-		else {
-			a -= 1;
-		}
-		print(a, b);
-		Type2(a, b);
-		return;
-	}
-	else if (b > y) {
-		if (spot[a][b - 1] == 1) {
-			a -= 1;
-		}
-		else {
-			b -= 1;
-		}
-		print(a, b);
-		Type2(a, b);
-		return;
-	}
-	else if (b < y) {
-		if (spot[a][b + 1] == 1) {
-			a -= 1;
-		}
-		else {
-			b += 1;
-		}
-		print(a, b);
-		Type2(a, b);
-		return;
-	}
-	else if (b == y) {
-		a += 1;
-		print(a, b);
-		Type2(a, b);
-		return;
-	}
-
-	return;
-}
-
-void Type3(int a, int b) {
-	if (a == x && b == y) {//到达结束点后退出递归
-		printf("到达！\n");
-		return;
-	}
-	if (a < x) {
-		if (spot[a + 1][b] == 1) {
-			b -= 1;
-		}
-		else {
-			a += 1;
-		}
-		print(a, b);
-		Type3(a, b);
-		return;
-	}
-	else if (b < y) {
-		if (spot[a][b + 1] == 1) {
-			a += 1;
-		}
-		else {
-			b += 1;
-		}
-		print(a, b);
-		Type3(a, b);
-		return;
-	}
-	else if (b > y) {
-		if (spot[a][b - 1] == 1) {
-			a += 1;
-		}
-		else {
-			b -= 1;
-		}
-		print(a, b);
-		Type3(a, b);
-		return;
-	}
-	else if (b == y) {
-		a -= 1;
-		print(a, b);
-		Type3(a, b);
-		return;
-	}
-
-	return;
-}
-
-void Type4(int a, int b) {
-	if (a == x && b == y) {//到达结束点后退出递归
-		printf("到达！\n");
-		return;
-	}
-	if (a < x) {
-		if (spot[a + 1][b] == 1) {
-			b += 1;
-		}
-		else {
-			a += 1;
-		}
-		print(a, b);
-		Type4(a, b);
-		return;
-	}
-	else if (b < y) {
-		if (spot[a][b + 1] == 1) {
-			a += 1;
-		}
-		else {
-			b += 1;
-		}
-		print(a, b);
-		Type4(a, b);
-		return;
-	}
-	else if (b > y) {
-		if (spot[a][b - 1] == 1) {
-			a += 1;
-		}
-		else {
-			b -= 1;
-		}
-		print(a, b);
-		Type4(a, b);
-		return;
-	}
-	else if (b == y) {
-		a -= 1;
-		print(a, b);
-		Type4(a, b);
-		return;
-	}
-
-	return;
-}
-
-void Type5(int a, int b) {
-	if (a == x && b == y) {//到达结束点后退出递归
-		printf("到达！\n");
-		return;
-	}
-	if (b >y) {
-		if (spot[a][b-1] == 1) {
-			a-= 1;
-		}
-		else {
-			b-= 1;
-		}
-		print(a, b);
-		Type5(a, b);
-		return;
-	}
-	else if (a < x) {
-		if (spot[a+1][b] == 1) {
-			b-= 1;
-		}
-		else {
-			a += 1;
-		}
-		print(a, b);
-		Type5(a, b);
-		return;
-	}
-	else if (a > x) {
-		if (spot[a-1][b] == 1) {
-			b-= 1;
-		}
-		else {
-			a -= 1;
-		}
-		print(a, b);
-		Type5(a, b);
-		return;
-	}
-	else if (a == x) {
-		b+= 1;
-		print(a, b);
-		Type5(a, b);
-		return;
-	}
-
-	return;
-}
-
-void Type6(int a, int b) {
-	if (a == x && b == y) {//到达结束点后退出递归
-		printf("到达！\n");
-		return;
-	}
-	if (b >y) {
-		if (spot[a][b - 1] == 1) {
-			a -= 1;
-		}
-		else {
-			b -= 1;
-		}
-		print(a, b);
-		Type6(a, b);
-		return;
-	}
-	else if (a < x) {
-		if (spot[a + 1][b] == 1) {
-			b -= 1;
-		}
-		else {
-			a += 1;
-		}
-		print(a, b);
-		Type6(a, b);
-		return;
-	}
-	else if (a > x) {
-		if (spot[a - 1][b] == 1) {
-			b -= 1;
-		}
-		else {
-			a -= 1;
-		}
-		print(a, b);
-		Type6(a, b);
-		return;
-	}
-	else if (a == x) {
+	if (flag3[number-1] != 3&&spot[a][b-1]!=1) {//如果上一步没有向下走，而且上面没有障碍物，那么这步就可以向上走（否则就返回了）
+		flag1++;//步数+1
+		if (flag3[number - 1] != 1)flag2++;//如果上一步没有向上走，那么就转了一次弯
+		b -= 1;//走了一步
+		flag3[number] = 1;
+		number += 1;
+		shitan();
+		number -= 1;
 		b += 1;
-		print(a, b);
-		Type6(a, b);
-		return;
+		if (flag3[number - 1] != 1)flag2--;
+		flag1--;//如果搜到底了，递归回来
 	}
-
-	return;
-}
-
-void Type7(int a, int b) {
-	if (a == x && b == y) {//到达结束点后退出递归
-		printf("到达！\n");
-		return;
+	if (flag3[number - 1] != 4 && spot[a+1][b] != 1) {//如果上一步没有向左走，而且右面没有障碍物，那么这步就可以向右走（否则就返回了）
+		flag1++;//步数+1
+		if (flag3[number - 1] != 2)flag2++;//如果上一步没有向右走，那么就转了一次弯
+		a+= 1;//走了一步
+		flag3[number] = 2;
+		number += 1;
+		shitan();
+		number -= 1;
+		a-= 1;
+		if (flag3[number - 1] != 2)flag2--;
+		flag1--;//如果搜到底了，递归回来
 	}
-	if (b <y) {
-		if (spot[a][b + 1] == 1) {
-			//printf("spot[%d][%d]=%d",a,b+1, spot[a][b + 1]);
-			a -= 1;
-		}
-		else {
-			b += 1;
-		}
-		print(a, b);
-		Type7(a, b);
-		return;
-	}
-	else if (a < x) {
-		if (spot[a + 1][b] == 1) {
-			b += 1;
-		}
-		else {
-			a += 1;
-		}
-		print(a, b);
-		Type7(a, b);
-		return;
-	}
-	else if (a > x) {
-		if (spot[a - 1][b] == 1) {
-			b += 1;
-		}
-		else {
-			a -= 1;
-		}
-		print(a, b);
-		Type7(a, b);
-		return;
-	}
-	else if (a == x) {
+	if (flag3[number - 1] != 1 && spot[a][b +1] != 1) {//如果上一步没有向上走，而且下面没有障碍物，那么这步就可以向下走（否则就返回了）
+		flag1++;//步数+1
+		if (flag3[number - 1] != 3)flag2++;//如果上一步没有向下走，那么就转了一次弯
+		b += 1;//走了一步
+		flag3[number] = 3;
+		number += 1;
+		shitan();
+		number -= 1;
 		b -= 1;
-		print(a, b);
-		Type7(a, b);
-		return;
+		if (flag3[number - 1] != 3)flag2--;
+		flag1--;//如果搜到底了，递归回来
 	}
-
-	return;
-}
-
-void Type8(int a, int b) {
-	if (a == x && b == y) {//到达结束点后退出递归
-		printf("到达！\n");
-		return;
+	if (flag3[number - 1] != 2 && spot[a-1][b] != 1) {//如果上一步没有向右走，而且左面没有障碍物，那么这步就可以向左走（否则就返回了）
+		flag1++;//步数+1
+		if (flag3[number - 1] != 4)flag2++;//如果上一步没有向左走，那么就转了一次弯
+		a -= 1;//走了一步
+		flag3[number]=4;
+		number += 1;
+		shitan();
+		number -= 1;
+		a += 1;
+		if (flag3[number - 1] != 4)flag2--;
+		flag1--;//如果搜到底了，递归回来
 	}
-	if (b <y) {
-		if (spot[a][b + 1] == 1) {
-			a += 1;
-		}
-		else {
-			b += 1;
-		}
-		print(a, b);
-		Type8(a, b);
-		return;
-	}
-	else if (a < x) {
-		if (spot[a + 1][b] == 1) {
-			b += 1;
-		}
-		else {
-			a += 1;
-		}
-		print(a, b);
-		Type8(a, b);
-		return;
-	}
-	else if (a > x) {
-		if (spot[a - 1][b] == 1) {
-			b += 1;
-		}
-		else {
-			a -= 1;
-		}
-		print(a, b);
-		Type8(a, b);
-		return;
-	}
-	else if (a == x) {
-		b -= 1;
-		print(a, b);
-		Type8(a, b);
-		return;
-	}
-
-	return;
-}
-
-void Type14(int a, int b) {
-	if (a == x && b == y) {//到达结束点后退出递归
-		printf("到达！\n");
-		return;
-	}
-	if (b <y) {
-		if (spot[a][b + 1] == 1) {
-			a += 1;
-		}
-		else {
-			b += 1;
-		}
-		print(a, b);
-		Type14(a, b);
-		return;
-	}
-	else if (a < x) {
-		if (spot[a + 1][b] == 1) {
-			b -= 1;
-		}
-		else {
-			a += 1;
-		}
-		print(a, b);
-		Type14(a, b);
-		return;
-	}
-	else if (a > x) {
-		if (spot[a - 1][b] == 1) {
-			b -= 1;
-		}
-		else {
-			a -= 1;
-		}
-		print(a, b);
-		Type14(a, b);
-		return;
-	}
-	else if (a == x) {
-		b -= 1;
-		print(a, b);
-		Type14(a, b);
-		return;
-	}
-
-	return;
-}
-
-
-void print(int a,int b) {
-	printf("[%d,%d]\n", a, b);
 }
