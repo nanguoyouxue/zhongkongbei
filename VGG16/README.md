@@ -1,6 +1,7 @@
 # 视觉识别采用Google推出的slim框架，经过微调完成。
-//by czl
-//2019/03/15
+by czl
+
+2019/03/15
 ## python3.6.8+TensorFlow1.x实现
 > * ### 准备工作
 > * [点击下载本项目](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/nanguoyouxue/zhongkongbei/tree/master/VGG16)
