@@ -2,7 +2,7 @@
 by czl
 
 2019/03/15
-## python3.6.8+TensorFlow1.x实现
+## python3.6.8+TensorFlow1.13.1实现
 > * ### 准备工作
 > * [点击下载本项目](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/nanguoyouxue/zhongkongbei/tree/master/VGG16)
 > * 解压至C盘以外的任何磁盘的一级目录下
