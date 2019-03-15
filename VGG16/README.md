@@ -17,8 +17,8 @@
 > * ### 修改登记信息
 > * 打开`slim/datasets/satellite.py`，修改：
 ```python
-SPLITS_TO_SIZES = {'train':（训练集的图片总数）,'validation':（测试集的图片总数）}
-_NUM_CLASSES = 6
+SPLITS_TO_SIZES = {'train':1200（训练集的图片总数）,'validation':200（测试集的图片总数）}
+_NUM_CLASSES = 2（这个是指你一共要识别多少类物体）
 ```
 --------
 > * ### 准备训练文件夹
@@ -76,5 +76,6 @@ xuehua(score = -0.12522)
 ## 参考：Google TensorFlow开源项目
 [GitHub主页传送门](https://github.com/tensorflow/models/tree/master/research/slim)
 ## 拓展阅读
-[基于深度学习的手部实时捕捉](https://victordibia.github.io/handtrack.js/#/)
-[体验Google Cloud云端图像识别](https://cloud.google.com/vision/)
+> [基于深度学习的手部实时捕捉](https://victordibia.github.io/handtrack.js/#/)
+
+> [体验Google Cloud云端图像识别](https://cloud.google.com/vision/)
