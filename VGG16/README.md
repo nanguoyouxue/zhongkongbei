@@ -1,10 +1,10 @@
-# 视觉识别采用Google推出的slim框架，经过微调完成。
+# 视觉识别采用Google推出的slim框架，经过微调完成
 by czl
 
-2019/03/15
+2019/03/18
 ## python3.6.8+TensorFlow1.13.1实现
 > * ### 准备工作
-> * [点击下载本项目](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/nanguoyouxue/zhongkongbei/tree/master/VGG16)
+> * [点击下载本项目](https://pan.baidu.com/s/1tFvw-QChX-sJM-yH1hlMSQ)**提取码：drdz**
 > * 解压至C盘以外的任何磁盘的一级目录下
 --------
 > * ### 制作数据集
@@ -39,7 +39,7 @@ _NUM_CLASSES = 2（这个是指你一共要识别多少类物体）
 ```C
 eval/Accuracy[1(有可能是其他数)]
 ```
-> * []中的数字就是准确率了，1代表100%
+> * []中的数字就是测试集的准确率，1代表100%
 --------
 > * ### 导出模型
 > * 运行`exprot_inference_graph.py`，在`satellite`中生成`inception_v3_inf_graph.pb`文件
