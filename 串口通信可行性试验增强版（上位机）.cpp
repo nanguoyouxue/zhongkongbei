@@ -67,7 +67,7 @@ loop:m_hComm = CreateFile(//打开端口
 
 
 	 //设置串口参数  (这段话没弄懂前不要修改，除了波特率）
-	 myDCB.BaudRate = CBR_115200;   // 设置波特率115200
+	 myDCB.BaudRate = CBR_9600;   // 设置波特率115200
 	 myDCB.fBinary = TRUE; // 设置二进制模式，此处必须设置TRUE  
 	 myDCB.fParity = FALSE; // 不支持奇偶校验  
 	 myDCB.fOutxCtsFlow = FALSE;  // 指定CTS不用于检测发送流控制
