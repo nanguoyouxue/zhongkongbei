@@ -1,110 +1,125 @@
 /*
- * 下位机主程序开工啦！
- * 下位机 1.0
- * by czl & robin
- * 2019/04/03
- */
+* 下位机主程序开工啦！
+* 下位机 1.0
+* by czl & robin
+* 2019/04/03
+*/
+int val1, val2;
+int CompassAngle0, CompassAngle1, CompassAngle2;
+int delta(int val1, int val2);
+int zhinan();
+#include <SoftwareSerial.h>//软串口通信库函数
 
-//全局函数声明
+SoftwareSerial mySerial(8, 9); //指南针模块的RX接11脚 TX接10脚
+
+                 //全局函数声明
 void forward(int);//前进
 void backward(int);//后退
 void left(int);//向左
 void right(int);//向右
 void stoping(int);//刹车
-void chearing();//关闭使能端口
-//--控制车运动的函数括号里为持续的时间，单位毫秒--
+void clearing();//关闭使能端口
+        //--控制车运动的函数括号里为持续的时间，单位毫秒--
 
-//arduino引脚声明
-byte rightwheel0=5;
-byte rightwheel1=7;
-byte leftwheel0=4;
-byte leftwheel1=2;
-byte righten=6;//使能端（右轮）
-byte leften=3;//使能端（左轮）
+        //arduino引脚声明
+byte rightwheel0 = 5;
+byte rightwheel1 = 7;
+byte leftwheel0 = 4;
+byte leftwheel1 = 2;
+byte righten = 6;//使能端（右轮）
+byte leften = 3;//使能端（左轮）
 
-//全局变量声明
+        //全局变量声明
 
-//主函数开始
-void setup(){
-  for(byte i=2;i<=7;i++)
-  pinMode(i,OUTPUT);//定义接口
+        //主函数开始
+void setup() {
+  for (byte i = 2; i <= 7; i++)
+    pinMode(i, OUTPUT);//定义接口
+  Serial.begin(9600);//与电脑硬串口波特率
+  mySerial.begin(9600);//软串口波特率
 }
 
-void loop(){
+void loop() {
   clearing();//关闭使能端口作为初始化
   delay(3000);
-  right(1300);
+  int val1 = zhinan();
+  right(500);
+  int val2 = zhinan();
+  while (delta(val1, val2) <= 85) {
+    right(100);
+    val2 = zhinan();
+  }
   clearing();
   delay(5000);
 }
 
 //封装函数定义
-void forward(int microseconds){
+void forward(int microseconds) {
   digitalWrite(leftwheel0, LOW);
   digitalWrite(leftwheel1, HIGH);
   analogWrite(leften, 255);
-          //左边轮子正转
-                    
+  //左边轮子正转
+
   digitalWrite(rightwheel0, LOW);
   digitalWrite(rightwheel1, HIGH);
   analogWrite(righten, 255);
-          //右边轮子正转
+  //右边轮子正转
 
   delay(microseconds);
 }
 
-void backward(int microseconds){
+void backward(int microseconds) {
   digitalWrite(leftwheel0, HIGH);
   digitalWrite(leftwheel1, LOW);
   analogWrite(leften, 255);
-          //左边轮子反转
+  //左边轮子反转
 
   digitalWrite(rightwheel0, HIGH);
   digitalWrite(rightwheel1, LOW);
   analogWrite(righten, 255);
-          //右边轮子反转
+  //右边轮子反转
 
   delay(microseconds);
 }
 
-void left(int microseconds){
+void left(int microseconds) {
   digitalWrite(leftwheel0, HIGH);
   digitalWrite(leftwheel1, LOW);
   analogWrite(leften, 255);
-          //左边轮子反转
-                    
+  //左边轮子反转
+
   digitalWrite(rightwheel0, LOW);
   digitalWrite(rightwheel1, HIGH);
   analogWrite(righten, 255);
-          //右边轮子正转
+  //右边轮子正转
 
   delay(microseconds);
 }
 
-void right(int microseconds){
+void right(int microseconds) {
   digitalWrite(leftwheel0, LOW);
   digitalWrite(leftwheel1, HIGH);
   analogWrite(leften, 255);
-          //左边轮子正转
-                    
+  //左边轮子正转
+
   digitalWrite(rightwheel0, HIGH);
   digitalWrite(rightwheel1, LOW);
   analogWrite(righten, 255);
-          //右边轮子反转
+  //右边轮子反转
 
   delay(microseconds);
 }
 
-void stoping(int microseconds){
+void stoping(int microseconds) {
   digitalWrite(leftwheel0, HIGH);
   digitalWrite(leftwheel1, HIGH);
   analogWrite(leften, 255);
-          //左边轮子反转
-                    
+  //左边轮子反转
+
   digitalWrite(rightwheel0, HIGH);
   digitalWrite(rightwheel1, HIGH);
   analogWrite(righten, 255);
-          //右边轮子正转
+  //右边轮子正转
   delay(150);//刹车用时150ms
 
   clearing();//关闭使能端
@@ -114,4 +129,55 @@ void stoping(int microseconds){
 void clearing(){
   analogWrite(leften, 0);
   analogWrite(righten, 0);
+}
+
+
+int delta(int val1, int val2) {
+  if (abs(val1 - val2)>180)
+    return abs(abs(val1 - val2) - 360);
+  else
+    return abs(val1 - val2);
+}
+
+int zhinan()
+{
+loop:mySerial.write(byte(0x31));//发送指令
+  delay(200);
+  if (mySerial.available())//共返回8个字节
+  {
+    byte Byte0 = mySerial.read();//开始读取缓冲区里的字节
+    byte Byte1 = mySerial.read();//byte型变量为字节型
+    byte Byte2 = mySerial.read();
+    byte Byte3 = mySerial.read();
+    byte Byte4 = mySerial.read();
+    byte Byte5 = mySerial.read();
+    byte Byte6 = mySerial.read();
+    byte Byte7 = mySerial.read();
+    CompassAngle1 = (Byte2 - 0x30) * 100 + (Byte3 - 0x30) * 10 + (Byte4 - 0x30);//算出角度
+    if (CompassAngle1<0 || CompassAngle1>360)goto loop;
+
+
+    while (Serial.available())
+      byte Byte0 = Serial.read();//清空缓冲区
+
+    Byte0 = mySerial.read();//开始读取缓冲区里的字节
+    Byte1 = mySerial.read();//byte型变量为字节型
+    Byte2 = mySerial.read();
+    Byte3 = mySerial.read();
+    Byte4 = mySerial.read();
+    Byte5 = mySerial.read();
+    Byte6 = mySerial.read();
+    Byte7 = mySerial.read();
+    CompassAngle2 = (Byte2 - 0x30) * 100 + (Byte3 - 0x30) * 10 + (Byte4 - 0x30);//算出角度
+    if (CompassAngle1 <= 2 || CompassAngle1 >= 358)goto loop;
+
+    if (abs(CompassAngle2 - CompassAngle1) >= 5)goto loop;
+    else CompassAngle0 = 0.5*(CompassAngle1 + CompassAngle2);
+    Serial.println(CompassAngle0);
+
+
+    return CompassAngle0;
+
+
+  }
 }
