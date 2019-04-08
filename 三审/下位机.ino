@@ -43,7 +43,7 @@ void loop() {
   clearing();//关闭使能端口作为初始化
   delay(3000);
   int val1 = zhinan();
-  right(500);
+  right(1300);
   int val2 = zhinan();
   while (delta(val1, val2) <= 85) {
     right(100);
@@ -154,22 +154,29 @@ loop:mySerial.write(byte(0x31));//发送指令
     byte Byte6 = mySerial.read();
     byte Byte7 = mySerial.read();
     CompassAngle1 = (Byte2 - 0x30) * 100 + (Byte3 - 0x30) * 10 + (Byte4 - 0x30);//算出角度
+    Serial.println(CompassAngle1);
     if (CompassAngle1<0 || CompassAngle1>360)goto loop;
+  }
 
+    //while (Serial.available())
+      //byte Byte0 = Serial.read();//清空缓冲区
 
-    while (Serial.available())
-      byte Byte0 = Serial.read();//清空缓冲区
-
-    Byte0 = mySerial.read();//开始读取缓冲区里的字节
-    Byte1 = mySerial.read();//byte型变量为字节型
-    Byte2 = mySerial.read();
-    Byte3 = mySerial.read();
-    Byte4 = mySerial.read();
-    Byte5 = mySerial.read();
-    Byte6 = mySerial.read();
-    Byte7 = mySerial.read();
+    mySerial.write(byte(0x31));//发送指令
+  delay(200);
+  if (mySerial.available())//共返回8个字节
+  {
+    byte Byte0 = mySerial.read();//开始读取缓冲区里的字节
+    byte Byte1 = mySerial.read();//byte型变量为字节型
+    byte Byte2 = mySerial.read();
+    byte Byte3 = mySerial.read();
+    byte Byte4 = mySerial.read();
+    byte Byte5 = mySerial.read();
+    byte Byte6 = mySerial.read();
+    byte Byte7 = mySerial.read();
     CompassAngle2 = (Byte2 - 0x30) * 100 + (Byte3 - 0x30) * 10 + (Byte4 - 0x30);//算出角度
-    if (CompassAngle1 <= 2 || CompassAngle1 >= 358)goto loop;
+    Serial.println(CompassAngle2);
+    if (CompassAngle2 <= 0 || CompassAngle2 >= 360)goto loop;
+  }
 
     if (abs(CompassAngle2 - CompassAngle1) >= 5)goto loop;
     else CompassAngle0 = 0.5*(CompassAngle1 + CompassAngle2);
@@ -180,4 +187,3 @@ loop:mySerial.write(byte(0x31));//发送指令
 
 
   }
-}
