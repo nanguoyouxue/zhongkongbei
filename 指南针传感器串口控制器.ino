@@ -1,6 +1,6 @@
 //电子指南针传感器串口控制器1.1 beta
 //by czl
-//2019/02/23/19;26
+//2019/02/23/19:26
 /*
  * 1.添加了指南针校准程序
  * 2.每次处理完毕后都清理缓冲区
@@ -8,7 +8,7 @@
 
 #include <SoftwareSerial.h>//软串口通信库函数
 
-SoftwareSerial mySerial(10, 11); //指南针模块的RX接11脚 TX接10脚
+SoftwareSerial mySerial(8,9); //指南针模块的RX接11脚 TX接10脚
 
 float CompassAngle;//记录角度
 
@@ -67,8 +67,9 @@ void loop()
         Serial.println("°");
     }
     
-    while(mySerial.available())
-    Byte0 = mySerial.read();//清空缓冲区
+    //貌似要报错
+    //while(mySerial.available())
+    //Byte0 = mySerial.read();//清空缓冲区
     
     delay(300);
 }
