@@ -1,8 +1,8 @@
 /*
-* 下位机主程序开工啦！
-* 下位机 1.0
+* 下位机 1.1 beta
 * by czl & robin
-* 2019/04/03
+*这是一个测试版本，用于后期修改出错时补救
+* 2019/04/10
 */
 int val1, val2;
 int CompassAngle0, CompassAngle1, CompassAngle2;
@@ -42,11 +42,15 @@ void setup() {
 void loop() {
   clearing();//关闭使能端口作为初始化
   delay(3000);
+  Serial.print("第一次测量得到：");
   int val1 = zhinan();
-  right(1300);
+  right(1000);
+  clearing();
+  Serial.print("第二次测量得到：");
   int val2 = zhinan();
   while (delta(val1, val2) <= 85) {
     right(100);
+    clearing();
     val2 = zhinan();
   }
   clearing();
@@ -154,7 +158,7 @@ loop:mySerial.write(byte(0x31));//发送指令
     byte Byte6 = mySerial.read();
     byte Byte7 = mySerial.read();
     CompassAngle1 = (Byte2 - 0x30) * 100 + (Byte3 - 0x30) * 10 + (Byte4 - 0x30);//算出角度
-    Serial.println(CompassAngle1);
+    //Serial.println(CompassAngle1);
     if (CompassAngle1<0 || CompassAngle1>360)goto loop;
   }
 
@@ -174,7 +178,7 @@ loop:mySerial.write(byte(0x31));//发送指令
     byte Byte6 = mySerial.read();
     byte Byte7 = mySerial.read();
     CompassAngle2 = (Byte2 - 0x30) * 100 + (Byte3 - 0x30) * 10 + (Byte4 - 0x30);//算出角度
-    Serial.println(CompassAngle2);
+    //Serial.println(CompassAngle2);
     if (CompassAngle2 <= 0 || CompassAngle2 >= 360)goto loop;
   }
 
