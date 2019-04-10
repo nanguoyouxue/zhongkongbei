@@ -1,6 +1,7 @@
 /*
-* 下位机 1.2 beta
-* 这个版本完整封装和整理了各个函数，并添加注释，但还未经过测试
+* 下位机 1.2
+* 这个版本完整封装和整理了各个函数，并添加注释，已经过测试
+* 本次增加了直角转弯函数Rt***
 * by czl & robin
 * 2019/04/03
 */
@@ -14,6 +15,8 @@ void forward(int);//前进
 void backward(int);//后退
 void left(int);//向左，函数内已清除了使能端
 void right(int);//向右，函数内已清除了使能端
+void Rtleft();//直角右转，函数内已清除了使能端
+void Rtright();//直角左转，函数内已清除了使能端
 void stoping(int);//刹车，函数内已清除了使能端
 void clearing();//关闭使能端口
 int delta(int, int);//检测转弯时角度是否达标
@@ -48,7 +51,7 @@ void setup() {
 }
 
 void loop() {
- right(1200);
+ Rtright();
  delay(5000);
 }
 
@@ -81,7 +84,7 @@ void backward(int microseconds) {
   delay(microseconds);
 }
 
-void left(int microseconds) {
+void Rtleft() {
   val1 = zhinan();//第一次测量角度值
   Serial.print("第一次测量得到：");
   Serial.println(val1);//输出测量得到的角度
@@ -96,7 +99,7 @@ void left(int microseconds) {
   analogWrite(righten, 255);
   //右边轮子正转
 
-  delay(microseconds);//延时microseconds毫秒
+  delay(700);//延时多少毫秒
   clearing();//停车等待角度测量
 
   val2 = zhinan();//第一次测量角度值
@@ -105,18 +108,17 @@ void left(int microseconds) {
 
   while (delta(val1, val2) <= 85) {//最大允许误差和修正值后期视实际情况修改,如果转弯角度不合理，则修正
     left(100);
-    clearing();
     val2 = zhinan();//再次测量现在的角度
   }
   while (delta(val1, val2) > 95) {//最大允许误差和修正值后期视实际情况修改
     right(50);
-    clearing();
     val2 = zhinan();//再次测量现在的角度
   }
 
   clearing();
 }
-void right(int microseconds) {
+
+void Rtright() {
   val1 = zhinan();//第一次测量角度值
   Serial.print("第一次测量得到：");
   Serial.println(val1);//输出测量得到的角度
@@ -131,7 +133,7 @@ void right(int microseconds) {
   analogWrite(righten, 255);
   //右边轮子反转
 
-  delay(microseconds);//延时microseconds毫秒
+  delay(1000);//延时多少毫秒
   clearing();//停车等待角度测量
 
   val2 = zhinan();//第一次测量角度值
@@ -139,16 +141,45 @@ void right(int microseconds) {
   Serial.println(val2);
 
   while (delta(val1, val2) <= 85) {//最大允许误差和修正值后期视实际情况修改,如果转弯角度不合理，则修正
+    //Serial.println(delta(val1, val2));
     right(100);
-    clearing();
     val2 = zhinan();//再次测量现在的角度
   }
   while (delta(val1, val2) > 95) {//最大允许误差和修正值后期视实际情况修改
+    //Serial.println(delta(val1, val2));
     left(50);
-    clearing();
     val2 = zhinan();//再次测量现在的角度
   }
+  clearing();
+}
 
+void left(int microseconds) {
+  digitalWrite(leftwheel0, HIGH);
+  digitalWrite(leftwheel1, LOW);
+  analogWrite(leften, 255);
+  //左边轮子反转
+
+  digitalWrite(rightwheel0, LOW);
+  digitalWrite(rightwheel1, HIGH);
+  analogWrite(righten, 255);
+  //右边轮子正转
+
+  delay(microseconds);
+  clearing();
+}
+
+void right(int microseconds) {
+  digitalWrite(leftwheel0, LOW);
+  digitalWrite(leftwheel1, HIGH);
+  analogWrite(leften, 255);
+  //左边轮子正转
+
+  digitalWrite(rightwheel0, HIGH);
+  digitalWrite(rightwheel1, LOW);
+  analogWrite(righten, 255);
+  //右边轮子反转
+
+  delay(microseconds);
   clearing();
 }
 
