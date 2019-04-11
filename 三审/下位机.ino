@@ -1,23 +1,28 @@
 /*
 * 下位机 1.2
-* 这个版本完整封装和整理了各个函数，并添加注释，已经过测试
-* 本次增加了直角转弯函数Rt***
+* 这个版本完整封装和整理了各个函数，并添加注释，已经过测试@0408
+* 本次增加了直角转弯函数Rt***@0410
+* 本次实试验性加入了巡线部分，但还未经过验证@0411
 * by czl & robin
-* 2019/04/10
+* 2019/04/11
 */
 
 //引用的库函数
 #include <SoftwareSerial.h>//软串口通信库函数（用于指南针）
 SoftwareSerial mySerial(8, 9); //指南针模块的RX接11脚 TX接10脚
 
-//全局函数声明--控制车运动的函数括号里为持续的时间，单位毫秒--
-void forward(int);//前进
-void backward(int);//后退
-void left(int);//向左，函数内已清除了使能端
-void right(int);//向右，函数内已清除了使能端
-void Rtleft();//直角右转，函数内已清除了使能端
-void Rtright();//直角左转，函数内已清除了使能端
-void stoping(int);//刹车，函数内已清除了使能端
+//全局函数声明--标星号的函数括号里为持续的时间，单位毫秒--
+void xunxian(int);//巡线前进，括号里的变量为前进的格子数
+void xstraight();//巡线时向前，数值监修中
+void xleft(int);//巡线时调节向左,括号里的值代表调节的程度，数值监修中
+void xright(int);//巡线时调节向右,括号里的值代表调节的程度，数值监修中
+void forward(int);//*前进
+void backward(int);//*后退
+void left(int);//*向左，函数内已清除使能端
+void right(int);//*向右，函数内已清除使能端
+void Rtleft();//直角右转，函数内已清除使能端
+void Rtright();//直角左转，函数内已清除使能端
+void stoping(int);//*刹车，函数内已清除使能端
 void clearing();//关闭使能端口
 int delta(int, int);//检测转弯时角度是否达标
 int zhinan();//用指南针测量目前方向角度
@@ -27,33 +32,45 @@ byte rightwheel0 = 5;
 byte rightwheel1 = 7;
 byte leftwheel0 = 4;
 byte leftwheel1 = 2;
-byte righten = 6;//使能端
+byte righten = 6;
 byte leften = 3;//使能端
+byte xun1=11;
+byte xun2=10;
+byte xun3=12;
+byte xun4=13;//四个巡线传感器，车头远离人方向从左向右排序
 
 //全局变量声明
 int val1, val2;//记录转弯前后角度值
-int CompassAngle0, CompassAngle1, CompassAngle2;
+int CompassAngle0, CompassAngle1, CompassAngle2;//记录指南针的测量值
+bool x1,x2,x3,x4;//记录四个巡线传感器的值
+int flag0=0;//记录连续多少次遇到白线，用于数格子
+int flag1=0;//记录数到第几个格子
 
 
 //主函数开始
+//-------------------------------------------
+//-------------------------------------------
 void setup() {
   //接口定义
-  for (byte i = 2; i <= 7; i++)pinMode(i, OUTPUT);//定义2-7接口为输出
-
+  for (byte i = 2; i <8; i++)pinMode(i, OUTPUT);//定义2-7接口为输出
+  for (byte i = 10; i <14; i++)pinMode(i, INPUT);//定义10-13接口为输入
+  
   //串口定义
   Serial.begin(9600);//与电脑硬串口波特率9600
   mySerial.begin(9600);//指南针软串口波特率9600
 
 
   //初始化
-  clearing();//关闭使能端口作为初始化
+  for (byte i = 10; i <14; i++)digitalWrite(i, HIGH);//初始化巡线传感器
+  clearing();//初始化马达
   delay(3000);//随便写的停顿
 }
 
 void loop() {
- Rtright();
- delay(5000);
+  
 }
+//------------------------------------------
+//------------------------------------------
 
 //封装函数定义
 void forward(int microseconds) {
@@ -246,4 +263,131 @@ int zhinan(){
     else CompassAngle0 = 0.5*(CompassAngle1 + CompassAngle2);//求出最终值
     
   return CompassAngle0;
+}
+
+void xunxian(int gezi){
+  while(flag1<=gezi){
+  x1= digitalRead(xun1);
+  x2= digitalRead(xun2);
+  x3= digitalRead(xun3);
+  x4= digitalRead(xun4);//读取红外巡迹传感器的值
+  float sum=0.35*x1+0.15*x2-0.15*x3-0.35*x4;//计算最终值,正偏左，负偏右
+  Serial.print("巡迹数据：");
+  Serial.print(x1);
+  Serial.print(" ");
+  Serial.print(x2);
+  Serial.print(" ");
+  Serial.print(x3);
+  Serial.print(" ");
+  Serial.println(x4);
+  Serial.println(sum);//输出，用于debug
+  if(sum==0.5)xright(2);
+  else if(sum==0.35)xright(3);
+  else if(sum==0.15)xright(1);
+  else if(sum==0.5)xleft(2);
+  else if(sum==0.35)xleft(3);
+  else if(sum==0.15)xleft(1);
+  else xstraight();//对不同的情况进行左右调整
+  if(x1==1&&x2==1&&x3==1&&x4==1)flag0++;//如果发现遇到白线，则flag0+1
+  if(flag0==5){//多次发现白线，可以确定是真的白线
+    flag1++;
+    flag0=0;
+  }
+  }
+  flag0=0;
+  flag1=0;//巡线结束，清空标志值
+}
+
+void xleft(int flag3){
+  if(flag3==1){
+  digitalWrite(leftwheel0, LOW);
+  digitalWrite(leftwheel1, HIGH);
+  analogWrite(leften, 255);
+  //左边轮子正转
+
+  digitalWrite(rightwheel0, LOW);
+  digitalWrite(rightwheel1, HIGH);
+  analogWrite(righten, 255);
+  //右边轮子正转
+  }
+  
+  if(flag3==2){
+  digitalWrite(leftwheel0, LOW);
+  digitalWrite(leftwheel1, HIGH);
+  analogWrite(leften, 255);
+  //左边轮子正转
+
+  digitalWrite(rightwheel0, LOW);
+  digitalWrite(rightwheel1, HIGH);
+  analogWrite(righten, 255);
+  //右边轮子正转
+  }
+  
+  if(flag3==3){
+  digitalWrite(leftwheel0, LOW);
+  digitalWrite(leftwheel1, HIGH);
+  analogWrite(leften, 255);
+  //左边轮子正转
+
+  digitalWrite(rightwheel0, LOW);
+  digitalWrite(rightwheel1, HIGH);
+  analogWrite(righten, 255);
+  //右边轮子正转
+  }
+
+  delay(100);
+}
+
+void xright(int flag3){
+  if(flag3==1){
+  digitalWrite(leftwheel0, LOW);
+  digitalWrite(leftwheel1, HIGH);
+  analogWrite(leften, 255);
+  //左边轮子正转
+
+  digitalWrite(rightwheel0, LOW);
+  digitalWrite(rightwheel1, HIGH);
+  analogWrite(righten, 255);
+  //右边轮子正转
+  }
+  
+  if(flag3==2){
+  digitalWrite(leftwheel0, LOW);
+  digitalWrite(leftwheel1, HIGH);
+  analogWrite(leften, 255);
+  //左边轮子正转
+
+  digitalWrite(rightwheel0, LOW);
+  digitalWrite(rightwheel1, HIGH);
+  analogWrite(righten, 255);
+  //右边轮子正转
+  }
+  
+  if(flag3==3){
+  digitalWrite(leftwheel0, LOW);
+  digitalWrite(leftwheel1, HIGH);
+  analogWrite(leften, 255);
+  //左边轮子正转
+
+  digitalWrite(rightwheel0, LOW);
+  digitalWrite(rightwheel1, HIGH);
+  analogWrite(righten, 255);
+  //右边轮子正转
+  }
+  
+  delay(100);
+}
+
+void xstraight(){
+  digitalWrite(leftwheel0, LOW);
+  digitalWrite(leftwheel1, HIGH);
+  analogWrite(leften, 255);
+  //左边轮子正转
+
+  digitalWrite(rightwheel0, LOW);
+  digitalWrite(rightwheel1, HIGH);
+  analogWrite(righten, 255);
+  //右边轮子正转
+
+  delay(100);
 }
