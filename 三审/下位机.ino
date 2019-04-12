@@ -9,7 +9,7 @@
 
 //引用的库函数
 #include <SoftwareSerial.h>//软串口通信库函数（用于指南针）
-SoftwareSerial mySerial(8, 9); //指南针模块的RX接11脚 TX接10脚
+SoftwareSerial mySerial(8, 9); //指南针模块的RX接8脚 TX接9脚
 
 //全局函数声明--标星号的函数括号里为持续的时间，单位毫秒--
 void xunxian(int);//巡线前进，括号里的变量为前进的格子数
@@ -34,18 +34,18 @@ byte leftwheel0 = 4;
 byte leftwheel1 = 2;
 byte righten = 6;
 byte leften = 3;//使能端
-byte xun1=11;
-byte xun2=10;
-byte xun3=12;
-byte xun4=13;//四个巡线传感器，车头远离人方向从左向右排序
+byte xun1=A1;
+byte xun2=A2;
+byte xun3=A3;
+byte xun4=A4;//四个巡线传感器，车头远离人方向从左向右排序
 
 //全局变量声明
 int val1, val2;//记录转弯前后角度值
 int CompassAngle0, CompassAngle1, CompassAngle2;//记录指南针的测量值
-bool x1,x2,x3,x4;//记录四个巡线传感器的值
+int x1,x2,x3,x4;//记录四个巡线传感器的值
 int flag0=0;//记录连续多少次遇到白线，用于数格子
-int flag1=0;//记录数到第几个格子
-
+int flag1=0,flag4=0;//记录数到第几个格子
+bool flag2=0;//0指目前可以进行白线计数，1指不可以
 
 //主函数开始
 //-------------------------------------------
@@ -53,7 +53,7 @@ int flag1=0;//记录数到第几个格子
 void setup() {
   //接口定义
   for (byte i = 2; i <8; i++)pinMode(i, OUTPUT);//定义2-7接口为输出
-  for (byte i = 10; i <14; i++)pinMode(i, INPUT);//定义10-13接口为输入
+  // for (byte i = 10; i <14; i++)pinMode(i, INPUT);//定义10-13接口为输入
   
   //串口定义
   Serial.begin(9600);//与电脑硬串口波特率9600
@@ -61,13 +61,14 @@ void setup() {
 
 
   //初始化
-  for (byte i = 10; i <14; i++)digitalWrite(i, HIGH);//初始化巡线传感器
+  //for (byte i = 10; i <14; i++)digitalWrite(i, HIGH);//初始化巡线传感器
   clearing();//初始化马达
-  delay(3000);//随便写的停顿
+  delay(5000);//随便写的停顿
 }
 
 void loop() {
-  
+  Rtright();
+  stoping(10000);
 }
 //------------------------------------------
 //------------------------------------------
@@ -119,7 +120,7 @@ void Rtleft() {
   delay(700);//延时多少毫秒
   clearing();//停车等待角度测量
 
-  val2 = zhinan();//第一次测量角度值
+  val2 = zhinan();//第二次测量角度值
   Serial.print("第二次测量得到：");
   Serial.println(val2);
 
@@ -153,17 +154,19 @@ void Rtright() {
   delay(1000);//延时多少毫秒
   clearing();//停车等待角度测量
 
-  val2 = zhinan();//第一次测量角度值
+  val2 = zhinan();//第二次测量角度值
   Serial.print("第二次测量得到：");
   Serial.println(val2);
 
   while (delta(val1, val2) <= 85) {//最大允许误差和修正值后期视实际情况修改,如果转弯角度不合理，则修正
-    //Serial.println(delta(val1, val2));
+    Serial.println("右调");
+    Serial.println(delta(val1, val2));
     right(100);
     val2 = zhinan();//再次测量现在的角度
   }
   while (delta(val1, val2) > 95) {//最大允许误差和修正值后期视实际情况修改
-    //Serial.println(delta(val1, val2));
+    Serial.println("左调");
+    Serial.println(delta(val1, val2));
     left(50);
     val2 = zhinan();//再次测量现在的角度
   }
@@ -266,8 +269,8 @@ int zhinan(){
 }
 
 void xunxian(int gezi){
-  while(flag1<=gezi){
-  x1= digitalRead(xun1);
+  while(flag1<gezi){
+  x1= digitalRead(A0);
   x2= digitalRead(xun2);
   x3= digitalRead(xun3);
   x4= digitalRead(xun4);//读取红外巡迹传感器的值
@@ -281,28 +284,36 @@ void xunxian(int gezi){
   Serial.print(" ");
   Serial.println(x4);
   Serial.println(sum);//输出，用于debug
-  if(sum==0.5)xright(2);
-  else if(sum==0.35)xright(3);
-  else if(sum==0.15)xright(1);
+  if(sum==-0.5)xright(2);
+  else if(sum==-0.35)xright(3);
+  else if(sum==-0.15)xright(1);
   else if(sum==0.5)xleft(2);
   else if(sum==0.35)xleft(3);
   else if(sum==0.15)xleft(1);
   else xstraight();//对不同的情况进行左右调整
-  if(x1==1&&x2==1&&x3==1&&x4==1)flag0++;//如果发现遇到白线，则flag0+1
-  if(flag0==5){//多次发现白线，可以确定是真的白线
+  if(x1==0&&x2==0)flag4++;
+  else flag4=0;
+  if(flag4>5)flag2=0;
+  if(x1+x2+x3+x4>=3&&flag2==0)flag0++;//如果发现遇到白线，则flag0+1
+  else flag0=0;
+  if(flag0==2){//多次发现白线，可以确定是真的白线
     flag1++;
     flag0=0;
+    flag2=0;
   }
   }
   flag0=0;
-  flag1=0;//巡线结束，清空标志值
+  flag1=0;
+  flag2=1;//巡线结束，清空标志值
+  stoping(0);
 }
 
 void xleft(int flag3){
+  Serial.println("向左调整");
   if(flag3==1){
   digitalWrite(leftwheel0, LOW);
   digitalWrite(leftwheel1, HIGH);
-  analogWrite(leften, 255);
+  analogWrite(leften, 100);
   //左边轮子正转
 
   digitalWrite(rightwheel0, LOW);
@@ -314,7 +325,7 @@ void xleft(int flag3){
   if(flag3==2){
   digitalWrite(leftwheel0, LOW);
   digitalWrite(leftwheel1, HIGH);
-  analogWrite(leften, 255);
+  analogWrite(leften, 50);
   //左边轮子正转
 
   digitalWrite(rightwheel0, LOW);
@@ -326,7 +337,7 @@ void xleft(int flag3){
   if(flag3==3){
   digitalWrite(leftwheel0, LOW);
   digitalWrite(leftwheel1, HIGH);
-  analogWrite(leften, 255);
+  analogWrite(leften, 0);
   //左边轮子正转
 
   digitalWrite(rightwheel0, LOW);
@@ -335,10 +346,11 @@ void xleft(int flag3){
   //右边轮子正转
   }
 
-  delay(100);
+  delay(5);
 }
 
 void xright(int flag3){
+  Serial.println("向右调整");
   if(flag3==1){
   digitalWrite(leftwheel0, LOW);
   digitalWrite(leftwheel1, HIGH);
@@ -347,7 +359,7 @@ void xright(int flag3){
 
   digitalWrite(rightwheel0, LOW);
   digitalWrite(rightwheel1, HIGH);
-  analogWrite(righten, 255);
+  analogWrite(righten, 100);
   //右边轮子正转
   }
   
@@ -359,7 +371,7 @@ void xright(int flag3){
 
   digitalWrite(rightwheel0, LOW);
   digitalWrite(rightwheel1, HIGH);
-  analogWrite(righten, 255);
+  analogWrite(righten, 50);
   //右边轮子正转
   }
   
@@ -371,14 +383,15 @@ void xright(int flag3){
 
   digitalWrite(rightwheel0, LOW);
   digitalWrite(rightwheel1, HIGH);
-  analogWrite(righten, 255);
+  analogWrite(righten, 0);
   //右边轮子正转
   }
   
-  delay(100);
+  delay(5);
 }
 
 void xstraight(){
+  Serial.println("向前");
   digitalWrite(leftwheel0, LOW);
   digitalWrite(leftwheel1, HIGH);
   analogWrite(leften, 255);
@@ -389,5 +402,5 @@ void xstraight(){
   analogWrite(righten, 255);
   //右边轮子正转
 
-  delay(100);
+  delay(5);
 }
