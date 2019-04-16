@@ -1,8 +1,9 @@
 /*
-* 下位机 1.2
+* 下位机 1.3
 * 这个版本完整封装和整理了各个函数，并添加注释，已经过测试@0408
 * 本次增加了直角转弯函数Rt***@0410
-* 本次实试验性加入了巡线部分，但还未经过验证@0411
+* 本次实试验性加入了巡线部分，已通过测试@0412
+* 出现笔记本磁场干扰电子指南针情况@0412
 * by czl & robin
 * 2019/04/11
 */
@@ -12,10 +13,10 @@
 SoftwareSerial mySerial(8, 9); //指南针模块的RX接8脚 TX接9脚
 
 //全局函数声明--标星号的函数括号里为持续的时间，单位毫秒--
-void xunxian(int);//巡线前进，括号里的变量为前进的格子数
+void xunxian(int);//巡线前进，括号里的变量为前进的格子数，函数内已清除使能端
 void xstraight();//巡线时向前，数值监修中
-void xleft(int);//巡线时调节向左,括号里的值代表调节的程度，数值监修中
-void xright(int);//巡线时调节向右,括号里的值代表调节的程度，数值监修中
+void xleft(int);//巡线时调节向左,括号里的值代表调节的程度
+void xright(int);//巡线时调节向右,括号里的值代表调节的程度
 void forward(int);//*前进
 void backward(int);//*后退
 void left(int);//*向左，函数内已清除使能端
@@ -274,7 +275,7 @@ void xunxian(int gezi){
   x2= digitalRead(xun2);
   x3= digitalRead(xun3);
   x4= digitalRead(xun4);//读取红外巡迹传感器的值
-  float sum=0.35*x1+0.15*x2-0.15*x3-0.35*x4;//计算最终值,正偏左，负偏右
+  float sum=0.35*x1+0.15*x2-0.15*x3-0.35*x4;//计算最终值,正偏右，负偏左
   Serial.print("巡迹数据：");
   Serial.print(x1);
   Serial.print(" ");
