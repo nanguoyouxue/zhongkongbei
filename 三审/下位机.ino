@@ -119,7 +119,7 @@ void Rtleft() {
 
   z1=digitalRead(zhuan1);
   z2=digitalRead(zhuan2);
-  while(!(z1==1&&z2==1){//当没有遇到白线时，继续左转
+  while(!(z1==1&&z2==1)){//当没有遇到白线时，继续左转
     z1=digitalRead(zhuan1);
     z2=digitalRead(zhuan2);
     delay(5);
