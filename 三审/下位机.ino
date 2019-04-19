@@ -1,11 +1,12 @@
 /*
-* 下位机 1.3
+* 下位机 1.4
 * 这个版本完整封装和整理了各个函数，并添加注释，已经过测试@0408
 * 本次增加了直角转弯函数Rt***@0410
 * 本次实试验性加入了巡线部分，已通过测试@0412
 * 出现笔记本磁场干扰电子指南针情况@0412
+* 放弃使用指南针，使用巡线传感器辅助转弯，未经过验证@0419
 * by czl & robin
-* 2019/04/11
+* 2019/04/19
 */
 
 //引用的库函数
@@ -39,11 +40,13 @@ byte xun1=A1;
 byte xun2=A2;
 byte xun3=A3;
 byte xun4=A4;//四个巡线传感器，车头远离人方向从左向右排序
+byte zhuan1=A5;
+byte zhuan2=A6;//两个位于车侧边的传感器用来确定转向90度
 
 //全局变量声明
 int val1, val2;//记录转弯前后角度值
 int CompassAngle0, CompassAngle1, CompassAngle2;//记录指南针的测量值
-int x1,x2,x3,x4;//记录四个巡线传感器的值
+int x1,x2,x3,x4,z1,z2;//记录6个巡线传感器的值
 int flag0=0;//记录连续多少次遇到白线，用于数格子
 int flag1=0,flag4=0;//记录数到第几个格子
 bool flag2=0;//0指目前可以进行白线计数，1指不可以
@@ -104,10 +107,6 @@ void backward(int microseconds) {
 }
 
 void Rtleft() {
-  val1 = zhinan();//第一次测量角度值
-  Serial.print("第一次测量得到：");
-  Serial.println(val1);//输出测量得到的角度
-  
   digitalWrite(leftwheel0, HIGH);
   digitalWrite(leftwheel1, LOW);
   analogWrite(leften, 255);
@@ -118,30 +117,17 @@ void Rtleft() {
   analogWrite(righten, 255);
   //右边轮子正转
 
-  delay(700);//延时多少毫秒
-  clearing();//停车等待角度测量
-
-  val2 = zhinan();//第二次测量角度值
-  Serial.print("第二次测量得到：");
-  Serial.println(val2);
-
-  while (delta(val1, val2) <= 85) {//最大允许误差和修正值后期视实际情况修改,如果转弯角度不合理，则修正
-    left(100);
-    val2 = zhinan();//再次测量现在的角度
+  z1=digitalRead(zhuan1);
+  z2=digitalRead(zhuan2);
+  while(!(z1==1&&z2==1){//当没有遇到白线时，继续左转
+    z1=digitalRead(zhuan1);
+    z2=digitalRead(zhuan2);
+    delay(5);
   }
-  while (delta(val1, val2) > 95) {//最大允许误差和修正值后期视实际情况修改
-    right(50);
-    val2 = zhinan();//再次测量现在的角度
-  }
-
-  clearing();
+  stoping(0);
 }
 
 void Rtright() {
-  val1 = zhinan();//第一次测量角度值
-  Serial.print("第一次测量得到：");
-  Serial.println(val1);//输出测量得到的角度
-  
   digitalWrite(leftwheel0, LOW);
   digitalWrite(leftwheel1, HIGH);
   analogWrite(leften, 255);
@@ -152,26 +138,14 @@ void Rtright() {
   analogWrite(righten, 255);
   //右边轮子反转
 
-  delay(1000);//延时多少毫秒
-  clearing();//停车等待角度测量
-
-  val2 = zhinan();//第二次测量角度值
-  Serial.print("第二次测量得到：");
-  Serial.println(val2);
-
-  while (delta(val1, val2) <= 85) {//最大允许误差和修正值后期视实际情况修改,如果转弯角度不合理，则修正
-    Serial.println("右调");
-    Serial.println(delta(val1, val2));
-    right(100);
-    val2 = zhinan();//再次测量现在的角度
+  z1=digitalRead(zhuan1);
+  z2=digitalRead(zhuan2);
+  while(!(z1==1&&z2==1)){//当没有遇到白线时，继续左转
+    z1=digitalRead(zhuan1);
+    z2=digitalRead(zhuan2);
+    delay(5);
   }
-  while (delta(val1, val2) > 95) {//最大允许误差和修正值后期视实际情况修改
-    Serial.println("左调");
-    Serial.println(delta(val1, val2));
-    left(50);
-    val2 = zhinan();//再次测量现在的角度
-  }
-  clearing();
+  stoping(0);
 }
 
 void left(int microseconds) {
@@ -271,7 +245,7 @@ int zhinan(){
 
 void xunxian(int gezi){
   while(flag1<gezi){
-  x1= digitalRead(A0);
+  x1= digitalRead(xun1);
   x2= digitalRead(xun2);
   x3= digitalRead(xun3);
   x4= digitalRead(xun4);//读取红外巡迹传感器的值
