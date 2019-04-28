@@ -25,3 +25,29 @@ by czl
 选择prebuilt-dll-2-9-1-release文件夹，在里面找到32位的dll和lib文件并做同样操作即可。
 
 > * demo已附上
+
+----------------------------
+
+### One More Thing
+
+pthread.h中会报错：C2011 “timespec”:“struct”类型重定义
+
+* * 解决方法：
+
+双击错误提示进入定义文件，在该文件比较前面的位置
+
+```C++
+
+#if !defined( PTHREAD_H )
+
+#define PTHREAD_H
+
+```
+下面加上
+
+```C++
+
+#define HAVE_STRUCT_TIMESPEC
+
+```
+即可
