@@ -1,4 +1,4 @@
-**多线程pthread库的安装心得
+## 多线程pthread库的安装心得
 
 by czl
 
