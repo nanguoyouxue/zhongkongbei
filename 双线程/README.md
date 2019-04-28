@@ -4,7 +4,7 @@
 
 > * windows10 VS2017环境下库的安装
 
-点击“项目”-“管理**程序包”搜索并安装pthread库即可
+点击“项目”-“管理 ** 程序包”搜索并安装pthread库即可
 
 > * 还需要一些依赖项
 
@@ -14,7 +14,7 @@
 
 由于使用了OpenCV，所以我们的依赖项文件是针对×64的
 
-如果要使用32位系统或是其他什么的可以访问![某镜像网站](http://www.mirrorservice.org/sites/sourceware.org/pub/pthreads-win32)
+如果要使用32位系统或是其他什么的可以访问[某镜像网站](http://www.mirrorservice.org/sites/sourceware.org/pub/pthreads-win32)
 
 选择prebuilt-dll-2-9-1-release文件夹，在里面找到32位的dll和lib文件并做同样操作即可。
 
