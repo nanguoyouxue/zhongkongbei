@@ -12,6 +12,8 @@ by czl
 
 点击“项目”-“管理 ** 程序包”搜索并安装pthread库即可
 
+![截图](https://i0.hdslb.com/bfs/article/1e280f63d10c33803f3f7db91ce9f8c28d806e31.png@1320w_742h.webp)
+
 > * 还需要一些依赖项
 
 网上教程十分复杂，亲测发现根本不用这么复杂。只需要两个文件：pthreadVC2.lib和pthreadVC2.dll
