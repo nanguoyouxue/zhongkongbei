@@ -1,12 +1,13 @@
 /*
-* 下位机 1.4
+* 下位机 1.5
 * 这个版本完整封装和整理了各个函数，并添加注释，已经过测试@0408
 * 本次增加了直角转弯函数Rt***@0410
 * 本次实试验性加入了巡线部分，已通过测试@0412
 * 出现笔记本磁场干扰电子指南针情况@0412
 * 放弃使用指南针，使用巡线传感器辅助转弯，未经过验证@0419
+* 超声波传感器封装函数完成，未经过验证@0501
 * by czl & robin
-* 2019/04/19
+* 2019/05/01
 */
 
 //引用的库函数
@@ -28,6 +29,7 @@ void stoping(int);//*刹车，函数内已清除使能端
 void clearing();//关闭使能端口
 int delta(int, int);//检测转弯时角度是否达标
 int zhinan();//用指南针测量目前方向角度
+int shengbo();//用超声波传感器测量距离障碍物的距离
 
 //arduino引脚声明
 byte rightwheel0 = 5;
@@ -36,10 +38,12 @@ byte leftwheel0 = 4;
 byte leftwheel1 = 2;
 byte righten = 6;
 byte leften = 3;//使能端
+byte pingPin = 11; //Trig接11号引脚
+byte echoPin = 12; // Echo接12号引脚
 byte xun1=A1;
 byte xun2=A2;
 byte xun3=A3;
-byte xun4=A4;//四个巡线传感器，车头远离人方向从左向右排序
+byte xun4=A4;//四个巡线传感器，车头远离人方向从左向右
 byte zhuan1=A5;
 byte zhuan2=A6;//两个位于车侧边的传感器用来确定转向90度
 
@@ -58,6 +62,8 @@ void setup() {
   //接口定义
   for (byte i = 2; i <8; i++)pinMode(i, OUTPUT);//定义2-7接口为输出
   // for (byte i = 10; i <14; i++)pinMode(i, INPUT);//定义10-13接口为输入
+  pinMode(pingPin, OUTPUT);
+  pinMode(echoPin, INPUT);//超声波传感器的接口
   
   //串口定义
   Serial.begin(9600);//与电脑硬串口波特率9600
@@ -116,7 +122,8 @@ void Rtleft() {
   digitalWrite(rightwheel1, HIGH);
   analogWrite(righten, 255);
   //右边轮子正转
-
+  delay(500);//延迟以免刚刚开始转动时遇到直行方向的白线
+  
   z1=digitalRead(zhuan1);
   z2=digitalRead(zhuan2);
   while(!(z1==1&&z2==1)){//当没有遇到白线时，继续左转
@@ -137,7 +144,8 @@ void Rtright() {
   digitalWrite(rightwheel1, LOW);
   analogWrite(righten, 255);
   //右边轮子反转
-
+  delay(500);//延迟以免刚刚开始转动时遇到直行方向的白线
+  
   z1=digitalRead(zhuan1);
   z2=digitalRead(zhuan2);
   while(!(z1==1&&z2==1)){//当没有遇到白线时，继续左转
@@ -378,4 +386,52 @@ void xstraight(){
   //右边轮子正转
 
   delay(5);
+}
+
+int shengbo(){
+   int duration, cm1，cm2,cm3,cm;//测到的距离和转化为厘米单位的距离值
+   int cha1,cha2,cha3;//三个值的差
+   
+   digitalWrite(pingPin, LOW);
+   delayMicroseconds(2);
+   digitalWrite(pingPin, HIGH);
+   delayMicroseconds(10);
+   digitalWrite(pingPin, LOW);
+   duration = pulseIn(echoPin, HIGH);
+   cm1 =duration / 29 / 2 ;
+   Serial.print("第一次测量:");
+   Serial.print(cm1);//以厘米为单位
+   delay(10);
+   
+   digitalWrite(pingPin, LOW);
+   delayMicroseconds(2);
+   digitalWrite(pingPin, HIGH);
+   delayMicroseconds(10);
+   digitalWrite(pingPin, LOW);
+   duration = pulseIn(echoPin, HIGH);
+   cm2 =duration / 29 / 2 ;
+   Serial.print("第二次测量:");
+   Serial.print(cm2);//以厘米为单位
+   delay(10);//测量之间的等待时间为10ms
+   
+   digitalWrite(pingPin, LOW);
+   delayMicroseconds(2);
+   digitalWrite(pingPin, HIGH);
+   delayMicroseconds(10);
+   digitalWrite(pingPin, LOW);
+   duration = pulseIn(echoPin, HIGH);
+   cm3 =duration / 29 / 2 ;
+   Serial.print("第三次测量:");
+   Serial.println(cm3);//以厘米为单位
+   
+   cha1=abs(cm1-cm2);
+   cha2=abs(cm2-cm3);
+   cha3=abs(cm1-cm3);
+   if(cha2>cha1&&cha3>cha1)cm=1/2(cm1+cm2);
+   if(cha1>cha2&&cha3>cha2)cm=1/2(cm2+cm3);
+   if(cha1>cha3&&cha2>cha3)cm=1/2(cm1+cm3);
+   
+   Serial.print("实际距离：");
+   Serial.println(cm);
+   return cm;
 }
