@@ -14,6 +14,7 @@
 using namespace std;
 
 pthread_t t1;                           //pthread_t变量t1，用于存储线程ID
+int drink;
 
 void* My_thread(void* args) {            //线程运行函数
 	clock_t start = clock();
@@ -28,9 +29,16 @@ int main() {                              //主程序
 	printf_s("我是主线程\n");
 	Sleep(1000);
 	printf_s("我真的是主线程\n");
-	Sleep(1000);
+	Sleep(9000);
 	printf_s("我还是主线程\n");
-	Sleep(10000);
-	printf("777");
+	FILE *fp;//开始读写的句柄
+	fopen_s(&fp, "predict_result.txt", "r+");
+	fscanf_s(fp, "%d", &drink);
+	if (drink == 1)printf_s("AD钙奶");
+	else if (drink == 2)printf_s("红牛");
+	else if (drink == 3)printf_s("雪花啤酒");
+	fclose(fp);
+	fopen_s(&fp,"predict_result.txt", "w+");
+	fclose(fp);
 	return 0;
 }
