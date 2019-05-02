@@ -21,7 +21,7 @@ using namespace cv;
 using namespace std;
 
 Mat frame;//保存像素的二维张量
-char str[999];
+char str[10];
 int i=0;
 
 int main() {
@@ -39,9 +39,9 @@ int main() {
 
 		imshow("拍照", frame);//将这张照片显示出来
 		waitKey(100);//等待30ms
-	 
+
 		//FILE *fp;读写文件的示例
-		//fopen_s(&fp, "train.txt", "r");	
+		//fopen_s(&fp, "train.txt", "r");
 		if (cvWaitKey(10) >= 0) {
 			sprintf_s(str, "%d.jpg", i);
 			imwrite(str, frame);//将这张照片保存为1.jpg
@@ -50,7 +50,7 @@ int main() {
 			i++;
 			Sleep(1000);
 		}
-	
+
      }
 		//fclose(fp);
 
