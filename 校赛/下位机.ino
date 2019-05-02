@@ -1,13 +1,14 @@
 /*
-* 下位机 1.5
+* 下位机 1.6
 * 这个版本完整封装和整理了各个函数，并添加注释，已经过测试@0408
 * 本次增加了直角转弯函数Rt***@0410
 * 本次实试验性加入了巡线部分，已通过测试@0412
 * 出现笔记本磁场干扰电子指南针情况@0412
 * 放弃使用指南针，使用巡线传感器辅助转弯，未经过验证@0419
 * 超声波传感器封装函数完成，未经过验证@0501
+* 增加串口通信模块，暂未通过验证@0502
 * by czl & robin
-* 2019/05/01
+* 2019/05/02
 */
 
 //引用的库函数
@@ -30,6 +31,7 @@ void clearing();//关闭使能端口
 int delta(int, int);//检测转弯时角度是否达标
 int zhinan();//用指南针测量目前方向角度
 int shengbo();//用超声波传感器测量距离障碍物的距离
+void uartReceive();//用于接收串口发来的字符串
 
 //arduino引脚声明
 byte rightwheel0 = 5;
@@ -54,6 +56,7 @@ int x1,x2,x3,x4,z1,z2;//记录6个巡线传感器的值
 int flag0=0;//记录连续多少次遇到白线，用于数格子
 int flag1=0,flag4=0;//记录数到第几个格子
 bool flag2=0;//0指目前可以进行白线计数，1指不可以
+String inString = "";//用于接收来自上位机的命令
 
 //主函数开始
 //-------------------------------------------
@@ -64,7 +67,7 @@ void setup() {
   // for (byte i = 10; i <14; i++)pinMode(i, INPUT);//定义10-13接口为输入
   pinMode(pingPin, OUTPUT);
   pinMode(echoPin, INPUT);//超声波传感器的接口
-  
+
   //串口定义
   Serial.begin(9600);//与电脑硬串口波特率9600
   mySerial.begin(9600);//指南针软串口波特率9600
@@ -123,7 +126,7 @@ void Rtleft() {
   analogWrite(righten, 255);
   //右边轮子正转
   delay(500);//延迟以免刚刚开始转动时遇到直行方向的白线
-  
+
   z1=digitalRead(zhuan1);
   z2=digitalRead(zhuan2);
   while(!(z1==1&&z2==1)){//当没有遇到白线时，继续左转
@@ -145,7 +148,7 @@ void Rtright() {
   analogWrite(righten, 255);
   //右边轮子反转
   delay(500);//延迟以免刚刚开始转动时遇到直行方向的白线
-  
+
   z1=digitalRead(zhuan1);
   z2=digitalRead(zhuan2);
   while(!(z1==1&&z2==1)){//当没有遇到白线时，继续左转
@@ -194,7 +197,7 @@ void stoping(int microseconds) {
   digitalWrite(rightwheel0, HIGH);
   digitalWrite(rightwheel1, HIGH);
   analogWrite(righten, 255);
-  
+
   delay(150);//刹车用时150ms
 
   clearing();//关闭使能端
@@ -244,10 +247,10 @@ int zhinan(){
     CompassAngle2 = (Byte2 - 0x30) * 100 + (Byte3 - 0x30) * 10 + (Byte4 - 0x30);//算出角度
   }
   if (CompassAngle2 < 0 || CompassAngle2 > 360)goto loop;//如果收到异常值，重新测量
-    
+
   if (abs(CompassAngle2 - CompassAngle1) >= 5)goto loop;//如果两次测出的值相差较大，重新测量
     else CompassAngle0 = 0.5*(CompassAngle1 + CompassAngle2);//求出最终值
-    
+
   return CompassAngle0;
 }
 
@@ -304,7 +307,7 @@ void xleft(int flag3){
   analogWrite(righten, 255);
   //右边轮子正转
   }
-  
+
   if(flag3==2){
   digitalWrite(leftwheel0, LOW);
   digitalWrite(leftwheel1, HIGH);
@@ -316,7 +319,7 @@ void xleft(int flag3){
   analogWrite(righten, 255);
   //右边轮子正转
   }
-  
+
   if(flag3==3){
   digitalWrite(leftwheel0, LOW);
   digitalWrite(leftwheel1, HIGH);
@@ -345,7 +348,7 @@ void xright(int flag3){
   analogWrite(righten, 100);
   //右边轮子正转
   }
-  
+
   if(flag3==2){
   digitalWrite(leftwheel0, LOW);
   digitalWrite(leftwheel1, HIGH);
@@ -357,7 +360,7 @@ void xright(int flag3){
   analogWrite(righten, 50);
   //右边轮子正转
   }
-  
+
   if(flag3==3){
   digitalWrite(leftwheel0, LOW);
   digitalWrite(leftwheel1, HIGH);
@@ -369,7 +372,7 @@ void xright(int flag3){
   analogWrite(righten, 0);
   //右边轮子正转
   }
-  
+
   delay(5);
 }
 
@@ -389,9 +392,9 @@ void xstraight(){
 }
 
 int shengbo(){
-   int duration, cm1，cm2,cm3,cm;//测到的距离和转化为厘米单位的距离值
+   int duration, cm1,cm2,cm3,cm;//测到的距离和转化为厘米单位的距离值
    int cha1,cha2,cha3;//三个值的差
-   
+
    digitalWrite(pingPin, LOW);
    delayMicroseconds(2);
    digitalWrite(pingPin, HIGH);
@@ -402,7 +405,7 @@ int shengbo(){
    Serial.print("第一次测量:");
    Serial.print(cm1);//以厘米为单位
    delay(10);
-   
+
    digitalWrite(pingPin, LOW);
    delayMicroseconds(2);
    digitalWrite(pingPin, HIGH);
@@ -413,7 +416,7 @@ int shengbo(){
    Serial.print("第二次测量:");
    Serial.print(cm2);//以厘米为单位
    delay(10);//测量之间的等待时间为10ms
-   
+
    digitalWrite(pingPin, LOW);
    delayMicroseconds(2);
    digitalWrite(pingPin, HIGH);
@@ -423,15 +426,32 @@ int shengbo(){
    cm3 =duration / 29 / 2 ;
    Serial.print("第三次测量:");
    Serial.println(cm3);//以厘米为单位
-   
+
    cha1=abs(cm1-cm2);
    cha2=abs(cm2-cm3);
    cha3=abs(cm1-cm3);
-   if(cha2>cha1&&cha3>cha1)cm=1/2(cm1+cm2);
-   if(cha1>cha2&&cha3>cha2)cm=1/2(cm2+cm3);
-   if(cha1>cha3&&cha2>cha3)cm=1/2(cm1+cm3);
-   
+   if(cha2>cha1&&cha3>cha1)cm=(cm1+cm2)/2;
+   if(cha1>cha2&&cha3>cha2)cm=(cm2+cm3)/2;
+   if(cha1>cha3&&cha2>cha3)cm=(cm1+cm3)/2;
+
    Serial.print("实际距离：");
    Serial.println(cm);
    return cm;
+}
+
+void uartReceive(){
+  bool endflag=1;
+  while(endflag==1){
+    while (Serial.available()>0) {   //如果串口有数据
+        char inChar = Serial.read(); //读取串口字符
+        //inString += inChar;
+        inString.concat(inChar);     //连接接收到的字符组
+        delayMicroseconds(100);      //为了防止数据丢失,在此设置短暂延时100us
+        Serial.flush();             //清空串口接收缓存
+        if(inString.length() > 200){
+            inString ="";
+        }
+        endflag=0;
+    }
+  }
 }
