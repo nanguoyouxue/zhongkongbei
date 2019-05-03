@@ -6,7 +6,7 @@
 * 出现笔记本磁场干扰电子指南针情况@0412
 * 放弃使用指南针，使用巡线传感器辅助转弯，未经过验证@0419
 * 超声波传感器封装函数完成，未经过验证@0501
-* 增加串口通信模块，暂未通过验证@0502
+* 增加串口通信模块，已通过验证@0502
 * by czl & robin
 * 2019/05/02
 */
@@ -16,7 +16,8 @@
 SoftwareSerial mySerial(8, 9); //指南针模块的RX接8脚 TX接9脚
 
 //全局函数声明--标星号的函数括号里为持续的时间，单位毫秒--
-void xunxian(int);//巡线前进，括号里的变量为前进的格子数，函数内已清除使能端
+void xunxian(int);//巡线前进，括号里的变量为前进的格子数，函数内已清除使能端，但未使用刹车
+void bange();//走半格让车停在格点中央，函数内已清除使能端
 void xstraight();//巡线时向前，数值监修中
 void xleft(int);//巡线时调节向左,括号里的值代表调节的程度
 void xright(int);//巡线时调节向右,括号里的值代表调节的程度
@@ -57,8 +58,9 @@ int flag0=0;//记录连续多少次遇到白线，用于数格子
 int flag1=0,flag4=0;//记录数到第几个格子
 bool flag2=0;//0指目前可以进行白线计数，1指不可以
 String inString = "";//用于接收来自上位机的命令
+int m=0,n=8,h=2;//m横坐标,n纵坐标,h头朝向
 
-//主函数开始
+//主函数开始（以下位机开启为机器启动）
 //-------------------------------------------
 //-------------------------------------------
 void setup() {
@@ -76,13 +78,26 @@ void setup() {
   //初始化
   //for (byte i = 10; i <14; i++)digitalWrite(i, HIGH);//初始化巡线传感器
   clearing();//初始化马达
-  delay(5000);//随便写的停顿
+  delay(9000);//比赛开始后要停顿10s（少停一秒节约时间嘿嘿嘿）
+
+  //开始运动
+  Serial.println("启动小车！");
+  xunxian(5);
+  bange();//到达第一个货架前
+  Serial.print("M5")//M5号命令是用来指示上位机拍照识别的
+  uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
+  inString="";
+  Serial.println("1号货架识别完毕")
+
+  xunxian(3);
+  bange();
+  Rtleft();
+  backward(1000);//后退约一格，数值还未测量
+  stoping(0);
+  //下面测量旁边有没有障碍物
 }
 
-void loop() {
-  Rtright();
-  stoping(10000);
-}
+void loop() {}
 //------------------------------------------
 //------------------------------------------
 
@@ -129,9 +144,17 @@ void Rtleft() {
 
   z1=digitalRead(zhuan1);
   z2=digitalRead(zhuan2);
+  Serial.print("侧边红外数据：");
+  Serial.print(z1);
+  Serial.print(" ");
+  Serial.println(z2);
   while(!(z1==1&&z2==1)){//当没有遇到白线时，继续左转
     z1=digitalRead(zhuan1);
     z2=digitalRead(zhuan2);
+    Serial.print("侧边红外数据：");
+    Serial.print(z1);
+    Serial.print(" ");
+    Serial.println(z2);
     delay(5);
   }
   stoping(0);
@@ -151,9 +174,17 @@ void Rtright() {
 
   z1=digitalRead(zhuan1);
   z2=digitalRead(zhuan2);
+  Serial.print("侧边红外数据：");
+  Serial.print(z1);
+  Serial.print(" ");
+  Serial.println(z2);
   while(!(z1==1&&z2==1)){//当没有遇到白线时，继续左转
     z1=digitalRead(zhuan1);
     z2=digitalRead(zhuan2);
+    Serial.print("侧边红外数据：");
+    Serial.print(z1);
+    Serial.print(" ");
+    Serial.println(z2);
     delay(5);
   }
   stoping(0);
@@ -291,7 +322,7 @@ void xunxian(int gezi){
   flag0=0;
   flag1=0;
   flag2=1;//巡线结束，清空标志值
-  stoping(0);
+  clearing();
 }
 
 void xleft(int flag3){
@@ -389,6 +420,37 @@ void xstraight(){
   //右边轮子正转
 
   delay(5);
+}
+
+void bange(){
+  digitalWrite(leftwheel0, LOW);
+  digitalWrite(leftwheel1, HIGH);
+  analogWrite(leften, 255);
+  //左边轮子正转
+
+  digitalWrite(rightwheel0, LOW);
+  digitalWrite(rightwheel1, HIGH);
+  analogWrite(righten, 255);
+  //右边轮子正转
+
+  z1=digitalRead(zhuan1);
+  z2=digitalRead(zhuan2);
+  Serial.print("侧边红外数据：");
+  Serial.print(z1);
+  Serial.print(" ");
+  Serial.println(z2);
+  while(!(z1==1&&z2==1)){//当没有遇到白线时，继续向前
+    z1=digitalRead(zhuan1);
+    z2=digitalRead(zhuan2);
+    Serial.print("侧边红外数据：");
+    Serial.print(z1);
+    Serial.print(" ");
+    Serial.println(z2);
+    delay(5);
+  }
+
+  stoping(0);
+  Serial.println("到达格点中央");
 }
 
 int shengbo(){
