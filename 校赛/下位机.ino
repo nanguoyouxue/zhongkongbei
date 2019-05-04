@@ -1,14 +1,16 @@
 /*
-* 下位机 1.6
-* 这个版本完整封装和整理了各个函数，并添加注释，已经过测试@0408
+* 下位机 1.7
+* 此版本完整封装和整理了各个函数，并添加注释，已经过测试@0408
 * 本次增加了直角转弯函数Rt***@0410
 * 本次实试验性加入了巡线部分，已通过测试@0412
 * 出现笔记本磁场干扰电子指南针情况@0412
 * 放弃使用指南针，使用巡线传感器辅助转弯，未经过验证@0419
 * 超声波传感器封装函数完成，未经过验证@0501
 * 增加串口通信模块，已通过验证@0502
+* 上位机发现所有障碍物都没有的时候应该认为所有障碍物都存在@0504
+* 调用VCAPI函数接收串口中文信息会出现乱码，未解决@0504
 * by czl & robin
-* 2019/05/02
+* 2019/05/04
 */
 
 //引用的库函数
@@ -18,6 +20,7 @@ SoftwareSerial mySerial(8, 9); //指南针模块的RX接8脚 TX接9脚
 //全局函数声明--标星号的函数括号里为持续的时间，单位毫秒--
 void xunxian(int);//巡线前进，括号里的变量为前进的格子数，函数内已清除使能端，但未使用刹车
 void bange();//走半格让车停在格点中央，函数内已清除使能端
+void banwan();//向左转半个弯，函数内已清除使能端，但未使用刹车
 void xstraight();//巡线时向前，数值监修中
 void xleft(int);//巡线时调节向左,括号里的值代表调节的程度
 void xright(int);//巡线时调节向右,括号里的值代表调节的程度
@@ -84,17 +87,88 @@ void setup() {
   Serial.println("启动小车！");
   xunxian(5);
   bange();//到达第一个货架前
+  //拍照
   Serial.print("M5")//M5号命令是用来指示上位机拍照识别的
   uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
   inString="";
-  Serial.println("1号货架识别完毕")
+  Serial.println("1号货架识别完毕");
 
   xunxian(3);
   bange();
   Rtleft();
   backward(1000);//后退约一格，数值还未测量
   stoping(0);
+
+  //下面测量旁边有没有障碍物，M6命令是用来说明有无障碍物
+  if(shengbo()>0)Serial.print("M61N");//如果返回值满足某条件则告诉上位机没有障碍物
+  if(shengbo()<0)Serial.print("M61Y");//如果返回值满足某条件则告诉上位机没有障碍物
+
+  xunxian(3);
+  bange();
+  //拍照
+  Serial.print("M5")//M5号命令是用来指示上位机拍照识别的
+  uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
+  inString="";
+  Serial.println("2号货架识别完毕");
+
   //下面测量旁边有没有障碍物
+  if(shengbo()>0)Serial.print("M62N");//如果返回值满足某条件则告诉上位机没有障碍物
+  if(shengbo()<0)Serial.print("M62Y");//如果返回值满足某条件则告诉上位机没有障碍物
+
+  xunxian(3);
+  bange();
+  left(600);//转45度的样子，数值未监修
+
+  //测量旁边有没有障碍物
+  if(shengbo()>0)Serial.print("M63N");//如果返回值满足某条件则告诉上位机没有障碍物
+  if(shengbo()<0)Serial.print("M63Y");//如果返回值满足某条件则告诉上位机没有障碍物
+
+  banwan();
+  xunxian(2);
+  bange();
+  //拍照
+  Serial.print("M5")//M5号命令是用来指示上位机拍照识别的
+  uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
+  inString="";
+  Serial.println("3号货架识别完毕");
+
+  //测量旁边有没有障碍物
+  if(shengbo()>0)Serial.print("M64N");//如果返回值满足某条件则告诉上位机没有障碍物
+  if(shengbo()<0)Serial.print("M64Y");//如果返回值满足某条件则告诉上位机没有障碍物
+
+  xunxian(3);
+  bange();
+  left(600);//转45度的样子，数值未监修
+
+  //测量旁边有没有障碍物
+  if(shengbo()>0)Serial.print("M65N");//如果返回值满足某条件则告诉上位机没有障碍物
+  if(shengbo()<0)Serial.print("M65Y");//如果返回值满足某条件则告诉上位机没有障碍物
+
+  banwan();
+  xunxian(2);
+  bange();
+  //拍照
+  Serial.print("M5")//M5号命令是用来指示上位机拍照识别的
+  uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
+  inString="";
+  Serial.println("4号货架识别完毕");
+
+  //测量旁边有没有障碍物
+  if(shengbo()>0)Serial.print("M66N");//如果返回值满足某条件则告诉上位机没有障碍物
+  if(shengbo()<0)Serial.print("M66Y");//如果返回值满足某条件则告诉上位机没有障碍物
+
+  xunxian(3);
+  Rtleft();
+  xunxian(2);
+
+  //开始询问上位机识别结果
+  Serial.print("M71");//M7号命令是用来询问上位机识别结果的
+  uartReceive();
+  if(inString[0]='1'){
+    backward(50);
+    Serial.print("")//下一步是进行物品抓取
+  }
+
 }
 
 void loop() {}
@@ -188,6 +262,36 @@ void Rtright() {
     delay(5);
   }
   stoping(0);
+}
+
+void banwan(){
+  digitalWrite(leftwheel0, HIGH);
+  digitalWrite(leftwheel1, LOW);
+  analogWrite(leften, 255);
+  //左边轮子反转
+
+  digitalWrite(rightwheel0, LOW);
+  digitalWrite(rightwheel1, HIGH);
+  analogWrite(righten, 255);
+  //右边轮子正转
+  //delay();//延迟以免刚刚开始转动时遇到直行方向的白线
+
+  z1=digitalRead(zhuan1);
+  z2=digitalRead(zhuan2);
+  Serial.print("侧边红外数据：");
+  Serial.print(z1);
+  Serial.print(" ");
+  Serial.println(z2);
+  while(!(z1==1&&z2==1)){//当没有遇到白线时，继续左转
+    z1=digitalRead(zhuan1);
+    z2=digitalRead(zhuan2);
+    Serial.print("侧边红外数据：");
+    Serial.print(z1);
+    Serial.print(" ");
+    Serial.println(z2);
+    delay(5);
+  }
+  clearing();
 }
 
 void left(int microseconds) {
