@@ -9,6 +9,8 @@
 * 增加串口通信模块，已通过验证@0502
 * 上位机发现所有障碍物都没有的时候应该认为所有障碍物都存在@0504
 * 调用VCAPI函数接收串口中文信息会出现乱码，未解决@0504
+* 修正巡线程序当开始点就在白线上时，会出现少数格子的问题@0506
+* 添加后退函数，可以用于小车后退到后面第一个交点中央，未经过检验@0506
 * by czl & robin
 * 2019/05/04
 */
@@ -20,6 +22,7 @@ SoftwareSerial mySerial(8, 9); //指南针模块的RX接8脚 TX接9脚
 //全局函数声明--标星号的函数括号里为持续的时间，单位毫秒--
 void xunxian(int);//巡线前进，括号里的变量为前进的格子数，函数内已清除使能端，但未使用刹车
 void bange();//走半格让车停在格点中央，函数内已清除使能端
+void houtui();//后退让车停在格点中央，函数内已清除使能端
 void banwan();//向左转半个弯，函数内已清除使能端，但未使用刹车
 void xstraight();//巡线时向前，数值监修中
 void xleft(int);//巡线时调节向左,括号里的值代表调节的程度
@@ -45,7 +48,7 @@ byte leftwheel1 = 2;
 byte righten = 6;
 byte leften = 3;//使能端
 byte pingPin = 11; //Trig接11号引脚
-byte echoPin = 12; // Echo接12号引脚
+byte echoPin = 10; // Echo接10号引脚
 byte xun1=A1;
 byte xun2=A2;
 byte xun3=A3;
@@ -61,7 +64,7 @@ int flag0=0;//记录连续多少次遇到白线，用于数格子
 int flag1=0,flag4=0;//记录数到第几个格子
 bool flag2=0;//0指目前可以进行白线计数，1指不可以
 String inString = "";//用于接收来自上位机的命令
-int m=0,n=8,h=2;//m横坐标,n纵坐标,h头朝向
+int m=0,n=8,h=2;//m横坐标,n纵坐标,h头朝向，这些数据改变放在运动的封装函数里
 
 //主函数开始（以下位机开启为机器启动）
 //-------------------------------------------
@@ -96,7 +99,8 @@ void setup() {
   xunxian(3);
   bange();
   Rtleft();
-  backward(1000);//后退约一格，数值还未测量
+  houtui();//后退到可能障碍物点的左边
+  n++;//这里的坐标改变需要手动添加
   stoping(0);
 
   //下面测量旁边有没有障碍物，M6命令是用来说明有无障碍物
@@ -159,14 +163,19 @@ void setup() {
 
   xunxian(3);
   Rtleft();
+  //第二圈运动开始，抓取小方块
   xunxian(2);
 
   //开始询问上位机识别结果
   Serial.print("M71");//M7号命令是用来询问上位机识别结果的
   uartReceive();
-  if(inString[0]='1'){
-    backward(50);
-    Serial.print("")//下一步是进行物品抓取
+  if(inString[0]='1'||inString[1]='1'||inString[2]='1'){//如果检测得到1号货架上有小方块
+    Rtleft();
+    xstraight(500);//向前走一点靠近货架以便抓取
+    if(inString[0]='1'){
+      Serial.print("M81");//M8命令是控制机械臂的
+
+    }
   }
 
 }
@@ -232,6 +241,9 @@ void Rtleft() {
     delay(5);
   }
   stoping(0);
+
+  if(h==1)h=4;//turn head
+  else h--;
 }
 
 void Rtright() {
@@ -262,6 +274,9 @@ void Rtright() {
     delay(5);
   }
   stoping(0);
+
+  if(h==4)h=1;//turn head
+  else h++;
 }
 
 void banwan(){
@@ -292,6 +307,9 @@ void banwan(){
     delay(5);
   }
   clearing();
+
+  if(h==1)h=4;//turn head
+  else h--;
 }
 
 void left(int microseconds) {
@@ -390,6 +408,17 @@ int zhinan(){
 }
 
 void xunxian(int gezi){
+  x1= digitalRead(xun1);
+  x2= digitalRead(xun2);
+  x3= digitalRead(xun3);
+  x4= digitalRead(xun4);//读取红外巡迹传感器的值
+  while(x1==1&&x2==1&&x3==1&&x4==1){//刚刚开始就在白线上，那么这次白线就不能算数
+    x1= digitalRead(xun1);
+    x2= digitalRead(xun2);
+    x3= digitalRead(xun3);
+    x4= digitalRead(xun4);//读取红外巡迹传感器的值
+    delay(5);//5ms后再次测量
+  }
   while(flag1<gezi){
   x1= digitalRead(xun1);
   x2= digitalRead(xun2);
@@ -427,6 +456,11 @@ void xunxian(int gezi){
   flag1=0;
   flag2=1;//巡线结束，清空标志值
   clearing();
+
+  if(h==1)n--;
+  else if(h==2)m++;
+  else if(h==3)n++;
+  else if(h==4)m--;
 }
 
 void xleft(int flag3){
@@ -553,6 +587,37 @@ void bange(){
     delay(5);
   }
 
+void houtui(){
+  digitalWrite(leftwheel0, HIGH);
+  digitalWrite(leftwheel1, LOW);
+  analogWrite(leften, 255);
+  //左边轮子反转
+
+  digitalWrite(rightwheel0, HIGH);
+  digitalWrite(rightwheel1, LOW);
+  analogWrite(righten, 255);
+  //右边轮子反转
+
+  z1=digitalRead(zhuan1);
+  z2=digitalRead(zhuan2);
+  Serial.print("侧边红外数据：");
+  Serial.print(z1);
+  Serial.print(" ");
+  Serial.println(z2);
+  while(z1==1&&z2==1){//如果本来就在白线上，应该忽略
+    z1=digitalRead(zhuan1);
+    z2=digitalRead(zhuan2);
+    delay(5);
+  }
+  while(!(z1==1&&z2==1)){//当没有遇到白线时，继续向前
+    z1=digitalRead(zhuan1);
+    z2=digitalRead(zhuan2);
+    Serial.print("侧边红外数据：");
+    Serial.print(z1);
+    Serial.print(" ");
+    Serial.println(z2);
+    delay(5);
+}
   stoping(0);
   Serial.println("到达格点中央");
 }
