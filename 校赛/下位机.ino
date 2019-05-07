@@ -1,5 +1,5 @@
 /*
-* 下位机 1.8
+* 下位机 1.9
 * 此版本完整封装和整理了各个函数，并添加注释，已经过测试@0408
 * 本次增加了直角转弯函数Rt***@0410
 * 本次实试验性加入了巡线部分，已通过测试@0412
@@ -11,8 +11,9 @@
 * 调用VCAPI函数接收串口中文信息会出现乱码，未解决@0504
 * 修正巡线程序当开始点就在白线上时，会出现少数格子的问题@0506
 * 添加后退函数，可以用于小车后退到后面第一个交点中央，未经过检验@0506
+* 解决启动区物理识别误差问题@0507
 * by czl & robin
-* 2019/05/06
+* 2019/05/07
 */
 
 //引用的库函数
@@ -41,6 +42,8 @@ int shengbo();//用超声波传感器测量距离障碍物的距离
 void uartReceive();//用于接收串口发来的字符串
 void head(int, char);//根据车现有方向和目标方向调整车的方向
 void M1();//由于M1命令比较繁琐，由该函数辅助完成
+void Ahuojia(char,char,int,char,char);//第一个是m坐标，第二个是n坐标，第三个是E仓库方向,第四个是抓中间还是旁边,第五个是放上面还是放下面
+//1,2,3分别表示左中右；4,5分别表示下上
 
            //arduino引脚声明
 byte rightwheel0 = 5;
@@ -56,7 +59,7 @@ byte xun2 = A2;
 byte xun3 = A3;
 byte xun4 = A4;//四个巡线传感器，车头远离人方向从左向右
 byte zhuan1 = A5;
-byte zhuan2 = A6;//两个位于车侧边的传感器用来确定转向90度
+byte zhuan2 = A0;//两个位于车侧边的传感器用来确定转向90度
 
          //全局变量声明
 int val1, val2;//记录转弯前后角度值
@@ -72,7 +75,7 @@ char outchar;//这是一个字符与整形转化过程的中转站
 String result = "";//这是暂时存放视觉识别结果的中转站
 int step;//作为向前步数的中转站
 String local[4]={"0508","0806","0603","0305"};//保存4个仓库地点
-String A[3]={"0110","0210","0310"};//这是保存A货架放置物体的固定位置，比赛当天修改
+String A[3]={"01104","02104","03104"};//这是保存A货架放置物体的固定位置，最后一位是上下，比赛当天修改
 int flag5=0;//这是保存A货架已经放到哪里了
            //byte head;//上位机给出的方向
 
@@ -96,11 +99,14 @@ void setup() {
              //初始化
              //for (byte i = 10; i <14; i++)digitalWrite(i, HIGH);//初始化巡线传感器
   clearing();//初始化马达
+  Serial.print("begin");
   delay(9000);//比赛开始后要停顿10s（少停一秒节约时间嘿嘿嘿）
 
         //开始运动
-  Serial.println("启动小车！");
-  xunxian(5);
+  Serial.println("run");
+  xstraight();
+  delay(1200);//因为传感器会把红色识别为白色，所以启动区不识别，直接向前
+  xunxian(4);
   bange();//到达第一个货架前
       //拍照
   Serial.print("M5");//M5号命令是用来指示上位机拍照识别的
@@ -177,118 +183,75 @@ void setup() {
   Rtleft();
   //第二圈运动开始，抓取小方块
   xunxian(2);
+  bange();
 
   //开始询问上位机识别结果
   Serial.print("M71");//M7号命令是用来询问上位机识别结果的
   uartReceive();
   result=inString;//先将inString里的数据迁移进来
   inString = "";//清空
+
+  //到1号货架前面
   if (result[0] == '1' || result[1] == '1' || result[2] == '1') {//如果检测得到1号货架上有小方块
     Rtleft();
     xstraight();
     delay(500);//向前走一点靠近货架以便抓取
-    if (result[0] = '1') {
-      Serial.print("M81");//M8命令是控制机械臂的
-      delay(3000);//等待机械臂运动完毕，数值待监修
-      houtui();//后退到原来那个点上
-      M1();//开始制作M1指令
-      outString.concat(A[flag5]);//这是第一个空柜子的摆放地点
-      Serial.print(outString);//让上位机安排路径
-      outString="";//发送指令以后清空
-      uartReceive();//接收上位机指令
-              //解析指令
-      byte i = inString[2] - '0';//得出一共有几段路
-      for (byte j = 0; j<i; j++) {//循环判断路径
-        head(h, inString[2*j+3]);//转弯
-        step=inString[2*j+4]-'0';
-        xunxian(step);
-      }
-      inString="";
-      head(h,'3');//把车头调向正对A仓库
-      Serial.print("M84");//让机械臂放回物品
-      delay(3000);
-      flag5++;
-    }
-    if(result[1]=='1'){//1号台中间有小方块
-      if(m!=5||n!=8){//如果此时小车不在1号货架前
-        M1();//开始制作M1指令
-        outString.concat(local[0]);
-        Serial.print(outString);//让上位机安排路径
-        outString="";//发送指令以后清空
-        uartReceive();//接收上位机指令
-                //解析指令
-        byte i = inString[2] - '0';//得出一共有几段路
-        for (byte j = 0; j<i; j++) {//循环判断路径
-          head(h, inString[2*j+3]);//转弯
-          step=inString[2*j+4]-'0';
-          xunxian(step);
-        }
-        inString="";
-        head(h,'1');//把车头调向正对1号仓库
-        xstraight();
-        delay(500);//向前走一点靠近货架以便抓取
-      }
-      Serial.print("M82");//让机械臂取物品
-      delay(3000);
-      M1();//开始制作M1指令
-      outString.concat(A[flag5]);
-      Serial.print(outString);//让上位机安排路径
-      outString="";//发送指令以后清空
-      uartReceive();//接收上位机指令
-              //解析指令
-      byte i = inString[2] - '0';//得出一共有几段路
-      for (byte j = 0; j<i; j++) {//循环判断路径
-        head(h, inString[2*j+3]);//转弯
-        step=inString[2*j+4]-'0';
-        xunxian(step);
-      }
-      inString="";
-      head(h,'3');//把车头调向正对A仓库
-      Serial.print("M84");//让机械臂放置物品
-      delay(3000);
-      flag5++;
-    }
-    if(result[2]='1'){
-      if(m!=5||n!=8){//如果此时小车不在1号货架前
-        M1();//开始制作M1指令
-        outString.concat(local[0]);
-        Serial.print(outString);//让上位机安排路径
-        outString="";//发送指令以后清空
-        uartReceive();//接收上位机指令
-                //解析指令
-        byte i = inString[2] - '0';//得出一共有几段路
-        for (byte j = 0; j<i; j++) {//循环判断路径
-          head(h, inString[2*j+3]);//转弯
-          step=inString[2*j+4]-'0';
-          xunxian(step);
-        }
-        inString="";
-        head(h,'1');//把车头调向正对1号仓库
-        xstraight();
-        delay(500);//向前走一点靠近货架以便抓取
-      }
-      Serial.print("M82");//让机械臂取物品
-      delay(3000);
-      M1();//开始制作M1指令
-      outString.concat(A[flag5]);
-      Serial.print(outString);//让上位机安排路径
-      outString="";//发送指令以后清空
-      uartReceive();//接收上位机指令
-              //解析指令
-      byte i = inString[2] - '0';//得出一共有几段路
-      for (byte j = 0; j<i; j++) {//循环判断路径
-        head(h, inString[2*j+3]);//转弯
-        step=inString[2*j+4]-'0';
-        xunxian(step);
-      }
-      inString="";
-      head(h,'3');//把车头调向正对A仓库
-      Serial.print("M84");//让机械臂放置物品
-      delay(3000);
-      flag5++;
-    }
-    //下一步就是把这些针对A货架的内容封装一下
+    if(result[0]=='1')Ahuojia(local[0][1],local[0][3],1,'1',A[flag5][4]);
+    if(result[1]=='1')Ahuojia(local[0][1],local[0][3],1,'2',A[flag5][4]);
+    if(result[2]=='1')Ahuojia(local[0][1],local[0][3],1,'3',A[flag5][4]);//一号货架，右边
   }
+  if(m!=5||n!=8){//如果此时小车不在1号货架前
+    M1();//开始制作M1指令
+    outString.concat(local[0]);
+    Serial.print(outString);//让上位机安排路径
+    outString="";//发送指令以后清空
+    uartReceive();//接收上位机指令
+            //解析指令
+    byte i = inString[2] - '0';//得出一共有几段路
+    for (byte j = 0; j<i; j++) {//循环判断路径
+      head(h, inString[2*j+3]);//转弯
+      step=inString[2*j+4]-'0';
+      xunxian(step);
+      bange();//继续前进到格点中央为止
+    }
+    inString="";
+    head(h,'2');//把车头调向运动方向
+  }
+
+  //到2号货架前面
+  xunxian(3);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  if (result[3]=='1'||result[4]=='1'||result[5]=='1'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    if(result[3]=='1')Ahuojia(local[1][1],local[1][3],4,'1',A[flag5][4]);
+    if(result[4]=='1')Ahuojia(local[1][1],local[1][3],4,'2',A[flag5][4]);
+    if(result[5]=='1')Ahuojia(local[1][1],local[1][3],4,'3',A[flag5][4]);
+  }
+  if(m!=8||n!=6){//如果此时小车不在1号货架前
+    M1();//开始制作M1指令
+    outString.concat(local[1]);
+    Serial.print(outString);//让上位机安排路径
+    outString="";//发送指令以后清空
+    uartReceive();//接收上位机指令
+            //解析指令
+    byte i = inString[2] - '0';//得出一共有几段路
+    for (byte j = 0; j<i; j++) {//循环判断路径
+      head(h, inString[2*j+3]);//转弯
+      step=inString[2*j+4]-'0';
+      xunxian(step);
+      bange();//继续前进到格点中央为止
+    }
+    inString="";
+    head(h,'1');//把车头调向运动方向
+  }
+  //到3号货架前
+  xunxian()
+
 }
 
 void loop() {}
@@ -342,7 +305,7 @@ void Rtleft() {
   Serial.print(z1);
   Serial.print(" ");
   Serial.println(z2);
-  while (!(z1 == 1 && z2 == 1)) {//当没有遇到白线时，继续左转
+  while ((z1 == 1 && z2 == 0)||(z1==0&&z2==0)||(z1==0&&z2==1)) {//当没有遇到白线时，继续左转
     z1 = digitalRead(zhuan1);
     z2 = digitalRead(zhuan2);
     Serial.print("侧边红外数据：");
@@ -375,7 +338,7 @@ void Rtright() {
   Serial.print(z1);
   Serial.print(" ");
   Serial.println(z2);
-  while (!(z1 == 1 && z2 == 1)) {//当没有遇到白线时，继续左转
+  while ((z1 == 1 && z2 == 0)||(z1==0&&z2==0)||(z1==0&&z2==1)) {//当没有遇到白线时，继续左转
     z1 = digitalRead(zhuan1);
     z2 = digitalRead(zhuan2);
     Serial.print("侧边红外数据：");
@@ -558,6 +521,7 @@ void xunxian(int gezi) {
     if (x1 + x2 + x3 + x4 >= 3 && flag2 == 0)flag0++;//如果发现遇到白线，则flag0+1
     else flag0 = 0;
     if (flag0 == 2) {//多次发现白线，可以确定是真的白线
+      Serial.println("格子+1");
       flag1++;
       flag0 = 0;
       flag2 = 0;
@@ -565,7 +529,7 @@ void xunxian(int gezi) {
   }
   flag0 = 0;
   flag1 = 0;
-  flag2 = 1;//巡线结束，清空标志值
+  flag2 = 0;//巡线结束，清空标志值
   clearing();
 
   if (h == 1)n--;
@@ -697,6 +661,7 @@ void bange() {
     Serial.println(z2);
     delay(5);
   }
+  stoping(0);
 }
 
   void houtui(){
@@ -846,4 +811,54 @@ void M1(){
   outString.concat(outchar);
   outchar = '0' + n % 10;//再得到个位数
   outString.concat(outchar);
+}
+
+void Ahuojia(char heng,char shu,int toward,char location,char height){
+  if((m+'0')!=heng||(n+'0')!=shu){//如果此时小车不在1号货架前
+    M1();//开始制作M1指令
+    if(toward==1)outString.concat(local[0]);
+    else if(toward==4)outString.concat(local[1]);
+    else if(toward==3)outString.concat(local[2]);
+    else outString.concat(local[3]);
+    Serial.print(outString);//让上位机安排路径
+    outString="";//发送指令以后清空
+    uartReceive();//接收上位机指令
+            //解析指令
+    byte i = inString[2] - '0';//得出一共有几段路
+    for (byte j = 0; j<i; j++) {//循环判断路径
+      head(h, inString[2*j+3]);//转弯
+      step=inString[2*j+4]-'0';
+      xunxian(step);
+      bange();
+    }
+    inString="";
+    head(h,'0'+toward);//把车头调向正对仓库
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+  }
+  outString="M8";
+  outString.concat(location);
+  Serial.print(outString);//让机械臂取物品
+  outString="";
+  delay(3000);
+  M1();//开始制作M1指令
+  outString.concat(A[flag5]);
+  Serial.print(outString);//让上位机安排路径
+  outString="";//发送指令以后清空
+  uartReceive();//接收上位机指令
+          //解析指令
+  byte i = inString[2] - '0';//得出一共有几段路
+  for (byte j = 0; j<i; j++) {//循环判断路径
+    head(h, inString[2*j+3]);//转弯
+    step=inString[2*j+4]-'0';
+    xunxian(step);
+  }
+  inString="";
+  head(h,'3');//把车头调向正对A仓库
+  outString="M8";
+  outString.concat(height);
+  Serial.print(outString);//让机械臂放置物品
+  outString="";
+  delay(3000);
+  flag5++;
 }
