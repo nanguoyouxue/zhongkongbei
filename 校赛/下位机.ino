@@ -1,5 +1,5 @@
 /*
-* 下位机 1.9
+* 下位机 2.0 beta
 * 此版本完整封装和整理了各个函数，并添加注释，已经过测试@0408
 * 本次增加了直角转弯函数Rt***@0410
 * 本次实试验性加入了巡线部分，已通过测试@0412
@@ -12,13 +12,15 @@
 * 修正巡线程序当开始点就在白线上时，会出现少数格子的问题@0506
 * 添加后退函数，可以用于小车后退到后面第一个交点中央，未经过检验@0506
 * 解决启动区物理识别误差问题@0507
+* 启动区红色识别会影响巡线，把这个格点作为障碍物点@0507
+* 删除了电子指南针所有的遗留程序@0508
+* 总体程序完成，正式进入debug阶段@0508
 * by czl & robin
-* 2019/05/07
+* 2019/05/08
 */
 
 //引用的库函数
-#include <SoftwareSerial.h>//软串口通信库函数（用于指南针）
-SoftwareSerial mySerial(8, 9); //指南针模块的RX接8脚 TX接9脚
+//暂无
 
                  //全局函数声明--标星号的函数括号里为持续的时间，单位毫秒--
 void xunxian(int);//巡线前进，括号里的变量为前进的格子数，函数内已清除使能端，但未使用刹车
@@ -36,15 +38,19 @@ void Rtleft();//直角右转，函数内已清除使能端
 void Rtright();//直角左转，函数内已清除使能端
 void stoping(int);//*刹车，函数内已清除使能端
 void clearing();//关闭使能端口
-int delta(int, int);//检测转弯时角度是否达标
-int zhinan();//用指南针测量目前方向角度
 int shengbo();//用超声波传感器测量距离障碍物的距离
+int shengbo1();//上方
+int shengbo2();//下方
 void uartReceive();//用于接收串口发来的字符串
 void head(int, char);//根据车现有方向和目标方向调整车的方向
 void M1();//由于M1命令比较繁琐，由该函数辅助完成
-void Ahuojia(char,char,int,char,char);//第一个是m坐标，第二个是n坐标，第三个是E仓库方向,第四个是抓中间还是旁边,第五个是放上面还是放下面
+void Ahuojia(char,char,int,char);//第一个是m坐标，第二个是n坐标，第三个是E仓库方向,第四个是抓中间还是旁边
 //1,2,3分别表示左中右；4,5分别表示下上
+void Bhuojia(char,char,int,char);//同上
+void Chuojia(char,char,int,char);
+void Dhuojia(char,char,int,char);
 void tance(int);//超声波探测各货架上有没有货物，int是指在哪个货架上
+void tiaozheng(int,int,char);//E货架的坐标点，和目标运动方向（平行于货架）
 
            //arduino引脚声明
 byte rightwheel0 = 5;
@@ -55,6 +61,10 @@ byte righten = 6;
 byte leften = 3;//使能端
 byte pingPin = 11; //Trig接11号引脚
 byte echoPin = 10; // Echo接10号引脚
+byte pingPin1 = 9;
+byte echoPin1 = 8; //这是检测上方格子的超声波
+byte pingPin2 = 12;
+byte echoPin2 = 13; //这是检测下方格子的超声波
 byte xun1 = A1;
 byte xun2 = A2;
 byte xun3 = A3;
@@ -63,8 +73,6 @@ byte zhuan1 = A5;
 byte zhuan2 = A0;//两个位于车侧边的传感器用来确定转向90度
 
          //全局变量声明
-int val1, val2;//记录转弯前后角度值
-int CompassAngle0, CompassAngle1, CompassAngle2;//记录指南针的测量值
 int x1, x2, x3, x4, z1, z2;//记录6个巡线传感器的值
 int flag0 = 0;//记录连续多少次遇到白线，用于数格子
 int flag1 = 0, flag4 = 0;//记录数到第几个格子
@@ -80,6 +88,7 @@ String A[3]={"01104","02104","03104"};//这是保存A货架放置物体的固定
 int flag5=0;//这是保存A货架已经放到哪里了
 int things[3][12];//二维数组保存货架有无货物的信息，顺序是货架从右到左，从上到下
 int flag6=0;//这是保存超声波检测到货架的第几个了，每个货架结束以后要归零
+int flag7=0;//这是保存后来放置物体时扫描数组里哪里是空着的
 
            //主函数开始（以下位机开启为机器启动）
            //-------------------------------------------
@@ -199,27 +208,11 @@ void setup() {
     xstraight();
     delay(500);//向前走一点靠近货架以便抓取
     clearing();
-    if(result[0]=='1')Ahuojia(local[0][1],local[0][3],1,'1',A[flag5][4]);
-    if(result[1]=='1')Ahuojia(local[0][1],local[0][3],1,'2',A[flag5][4]);
-    if(result[2]=='1')Ahuojia(local[0][1],local[0][3],1,'3',A[flag5][4]);//一号货架，右边
+    if(result[0]=='1')Ahuojia(local[0][1],local[0][3],1,'1');
+    if(result[1]=='1')Ahuojia(local[0][1],local[0][3],1,'2');
+    if(result[2]=='1')Ahuojia(local[0][1],local[0][3],1,'3');//一号货架，右边
   }
-  if(m!=5||n!=8){//如果此时小车不在1号货架前
-    M1();//开始制作M1指令
-    outString.concat(local[0]);
-    Serial.print(outString);//让上位机安排路径
-    outString="";//发送指令以后清空
-    uartReceive();//接收上位机指令
-            //解析指令
-    byte i = inString[2] - '0';//得出一共有几段路
-    for (byte j = 0; j<i; j++) {//循环判断路径
-      head(h, inString[2*j+3]);//转弯
-      step=inString[2*j+4]-'0';
-      xunxian(step);
-      bange();//继续前进到格点中央为止
-    }
-    inString="";
-    head(h,'2');//把车头调向运动方向
-  }
+  tiaozheng(5,8,'2');
 
   //到2号货架前面
   xunxian(3);
@@ -232,27 +225,11 @@ void setup() {
     xstraight();
     delay(500);//向前走一点靠近货架以便抓取
     clearing();
-    if(result[3]=='1')Ahuojia(local[1][1],local[1][3],4,'1',A[flag5][4]);
-    if(result[4]=='1')Ahuojia(local[1][1],local[1][3],4,'2',A[flag5][4]);
-    if(result[5]=='1')Ahuojia(local[1][1],local[1][3],4,'3',A[flag5][4]);
+    if(result[3]=='1')Ahuojia(local[1][1],local[1][3],4,'1');
+    if(result[4]=='1')Ahuojia(local[1][1],local[1][3],4,'2');
+    if(result[5]=='1')Ahuojia(local[1][1],local[1][3],4,'3');
   }
-  if(m!=8||n!=6){//如果此时小车不在1号货架前
-    M1();//开始制作M1指令
-    outString.concat(local[1]);
-    Serial.print(outString);//让上位机安排路径
-    outString="";//发送指令以后清空
-    uartReceive();//接收上位机指令
-            //解析指令
-    byte i = inString[2] - '0';//得出一共有几段路
-    for (byte j = 0; j<i; j++) {//循环判断路径
-      head(h, inString[2*j+3]);//转弯
-      step=inString[2*j+4]-'0';
-      xunxian(step);
-      bange();//继续前进到格点中央为止
-    }
-    inString="";
-    head(h,'1');//把车头调向运动方向
-  }
+  tiaozheng(8,6,'1');
   //到3号货架前
   xunxian(3);
   bange();
@@ -268,26 +245,11 @@ void setup() {
     xstraight();
     delay(500);//向前走一点靠近货架以便抓取
     clearing();
-    if(result[6]=='1')Ahuojia(local[2][1],local[2][3],3,'1',A[flag5][4]);
-    if(result[7]=='1')Ahuojia(local[2][1],local[2][3],3,'2',A[flag5][4]);
-    if(result[8]=='1')Ahuojia(local[2][1],local[2][3],3,'3',A[flag5][4]);
-    if(m!=6||n!=3){//如果此时小车不在3号货架前
-      M1();//开始制作M1指令
-      outString.concat(local[2]);
-      Serial.print(outString);//让上位机安排路径
-      outString="";//发送指令以后清空
-      uartReceive();//接收上位机指令
-              //解析指令
-      byte i = inString[2] - '0';//得出一共有几段路
-      for (byte j = 0; j<i; j++) {//循环判断路径
-        head(h, inString[2*j+3]);//转弯
-        step=inString[2*j+4]-'0';
-        xunxian(step);
-        bange();//继续前进到格点中央为止
-      }
-      inString="";
-      head(h,'4');//把车头调向运动方向
+    if(result[6]=='1')Ahuojia(local[2][1],local[2][3],3,'1');
+    if(result[7]=='1')Ahuojia(local[2][1],local[2][3],3,'2');
+    if(result[8]=='1')Ahuojia(local[2][1],local[2][3],3,'3');
   }
+    tiaozheng(6,3,'4');
   //到4号货架前
   xunxian(3);
   bange();
@@ -299,26 +261,13 @@ void setup() {
     xstraight();
     delay(500);//向前走一点靠近货架以便抓取
     clearing();
-    if(result[9]=='1')Ahuojia(local[3][1],local[3][3],2,'1',A[flag5][4]);
-    if(result[10]=='1')Ahuojia(local[3][1],local[3][3],2,'2',A[flag5][4]);
-    if(result[11]=='1')Ahuojia(local[3][1],local[3][3],2,'3',A[flag5][4]);
-    if(m!=6||n!=3){//如果此时小车不在4号货架前
-      M1();//开始制作M1指令
-      outString.concat(local[3]);
-      Serial.print(outString);//让上位机安排路径
-      outString="";//发送指令以后清空
-      uartReceive();//接收上位机指令
-              //解析指令
-      byte i = inString[2] - '0';//得出一共有几段路
-      for (byte j = 0; j<i; j++) {//循环判断路径
-        head(h, inString[2*j+3]);//转弯
-        step=inString[2*j+4]-'0';
-        xunxian(step);
-        bange();//继续前进到格点中央为止
-      }
-      inString="";
-      head(h,'3');//把车头调向运动方向
+    if(result[9]=='1')Ahuojia(local[3][1],local[3][3],2,'1');
+    if(result[10]=='1')Ahuojia(local[3][1],local[3][3],2,'2');
+    if(result[11]=='1')Ahuojia(local[3][1],local[3][3],2,'3');
   }
+  tiaozheng(6,3,'3');
+  flag5=0;//标志值归零
+
   //到B货架前面
   xunxian(5);
   bange();
@@ -326,22 +275,233 @@ void setup() {
   xunxian(7);
   bange();
   Rtleft();
+  Serial.print("M9");//M9号命令是用来探测货架上有没有东西
+  uartReceive();//接收上位机指令
+  inString="";
   tance(0);//超声波探测
+  flag6=0;
   //到C货架前面
   xunxian(3);
   bange();
   Rtleft();
   tance(1);
+  flag6=0;
   //到D货架前面
   xunxian(3);
   bange();
   Rtleft();
-  tance(2);
+  tance(2);//这个函数要修改
+  flag6=0;//标志值归零
 
   m=1;n=7;h=3;//也不知道方向位置计算是否有错误，矫正一下
   //至此，要开始货物搬运了
 
-  
+  Rtleft();
+  xunxian(2);
+  bange();
+  Rtright();
+  xunxian(1);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  //到1号货架前面
+  if (result[0] == '2' || result[1] == '2' || result[2] == '2'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+    if(result[0]=='2')Bhuojia(local[0][1],local[0][3],1,'1');//一号货架，左边
+    if(result[1]=='2')Bhuojia(local[0][1],local[0][3],1,'2');//一号货架，中间
+    if(result[2]=='2')Bhuojia(local[0][1],local[0][3],1,'3');//一号货架，右边
+  }
+  tiaozheng(5,8,'2');
+  //到2号货架前面
+  xunxian(3);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  if (result[3]=='2'||result[4]=='2'||result[5]=='2'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+    if(result[3]=='2')Bhuojia(local[1][1],local[1][3],4,'1');
+    if(result[4]=='2')Bhuojia(local[1][1],local[1][3],4,'2');
+    if(result[5]=='2')Bhuojia(local[1][1],local[1][3],4,'3');
+  }
+  tiaozheng(8,6,'1');
+  //到3号货架前
+  xunxian(3);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  if (result[6]=='2'||result[7]=='2'||result[8]=='2'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+    if(result[6]=='2')Bhuojia(local[2][1],local[2][3],3,'1');
+    if(result[7]=='2')Bhuojia(local[2][1],local[2][3],3,'2');
+    if(result[8]=='2')Bhuojia(local[2][1],local[2][3],3,'3');
+  }
+  tiaozheng(6,3,'4');
+  //到4号货架前
+  xunxian(3);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  if (result[9]=='2'||result[10]=='2'||result[11]=='2'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+    if(result[9]=='2')Bhuojia(local[3][1],local[3][3],2,'1');
+    if(result[10]=='2')Bhuojia(local[3][1],local[3][3],2,'2');
+    if(result[11]=='2')Bhuojia(local[3][1],local[3][3],2,'3');
+  }
+  tiaozheng(6,3,'3');
+  flag7=0;
+
+  //开始向C货架进军
+  xunxian(3);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  //到1号货架前面
+  if (result[0] == '3' || result[1] == '3' || result[2] == '3'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+    if(result[0]=='3')Chuojia(local[0][1],local[0][3],1,'1');//一号货架，左边
+    if(result[1]=='3')Chuojia(local[0][1],local[0][3],1,'2');//一号货架，中间
+    if(result[2]=='3')Chuojia(local[0][1],local[0][3],1,'3');//一号货架，右边
+  }
+  tiaozheng(5,8,'2');
+  //到2号货架前面
+  xunxian(3);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  if (result[3]=='3'||result[4]=='3'||result[5]=='3'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+    if(result[3]=='3')Chuojia(local[1][1],local[1][3],4,'1');
+    if(result[4]=='3')Chuojia(local[1][1],local[1][3],4,'2');
+    if(result[5]=='3')Chuojia(local[1][1],local[1][3],4,'3');
+  }
+  tiaozheng(8,6,'1');
+  //到3号货架前
+  xunxian(3);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  if (result[6]=='3'||result[7]=='3'||result[8]=='3'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+    if(result[6]=='3')Chuojia(local[2][1],local[2][3],3,'1');
+    if(result[7]=='3')Chuojia(local[2][1],local[2][3],3,'2');
+    if(result[8]=='3')Chuojia(local[2][1],local[2][3],3,'3');
+  }
+  tiaozheng(6,3,'4');
+  //到4号货架前
+  xunxian(3);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  if (result[9]=='3'||result[10]=='3'||result[11]=='3'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+    if(result[9]=='3')Chuojia(local[3][1],local[3][3],2,'1');
+    if(result[10]=='3')Chuojia(local[3][1],local[3][3],2,'2');
+    if(result[11]=='3')Chuojia(local[3][1],local[3][3],2,'3');
+  }
+  tiaozheng(6,3,'3');
+  flag7=0;
+
+  //开始向D货架进军
+  xunxian(3);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  //到1号货架前面
+  if (result[0] == '4' || result[1] == '4' || result[2] == '4'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+    if(result[0]=='4')Dhuojia(local[0][1],local[0][3],1,'1');//一号货架，左边
+    if(result[1]=='4')Dhuojia(local[0][1],local[0][3],1,'2');//一号货架，中间
+    if(result[2]=='4')Dhuojia(local[0][1],local[0][3],1,'3');//一号货架，右边
+  }
+  tiaozheng(5,8,'2');
+  //到2号货架前面
+  xunxian(3);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  if (result[3]=='4'||result[4]=='4'||result[5]=='4'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+    if(result[3]=='4')Dhuojia(local[1][1],local[1][3],4,'1');
+    if(result[4]=='4')Dhuojia(local[1][1],local[1][3],4,'2');
+    if(result[5]=='4')Dhuojia(local[1][1],local[1][3],4,'3');
+  }
+  tiaozheng(8,6,'1');
+  //到3号货架前
+  xunxian(3);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  if (result[6]=='4'||result[7]=='4'||result[8]=='4'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+    if(result[6]=='4')Dhuojia(local[2][1],local[2][3],3,'1');
+    if(result[7]=='4')Dhuojia(local[2][1],local[2][3],3,'2');
+    if(result[8]=='4')Dhuojia(local[2][1],local[2][3],3,'3');
+  }
+  tiaozheng(6,3,'4');
+  //到4号货架前
+  xunxian(3);
+  bange();
+  Rtleft();
+  xunxian(2);
+  bange();
+  if (result[9]=='4'||result[10]=='4'||result[11]=='4'){
+    Rtleft();
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+    if(result[9]=='4')Dhuojia(local[3][1],local[3][3],2,'1');
+    if(result[10]=='4')Dhuojia(local[3][1],local[3][3],2,'2');
+    if(result[11]=='4')Dhuojia(local[3][1],local[3][3],2,'3');
+  }
+  tiaozheng(6,3,'3');
+  flag7=0;
+
+  //程序结束
+  Serial.print("done");
 }
 
 void loop() {}
@@ -524,51 +684,6 @@ void stoping(int microseconds) {
 void clearing() {
   analogWrite(leften, 0);
   analogWrite(righten, 0);
-}
-
-
-int delta(int val1, int val2) {
-  if (abs(val1 - val2)>180)
-    return abs(abs(val1 - val2) - 360);
-  else
-    return abs(val1 - val2);
-}
-
-int zhinan() {
-loop:mySerial.write(byte(0x31));//发送指令
-  delay(200);
-  if (mySerial.available()) {//共返回8个字节
-    byte Byte0 = mySerial.read();//开始读取缓冲区里的字节
-    byte Byte1 = mySerial.read();//byte型变量为字节型
-    byte Byte2 = mySerial.read();
-    byte Byte3 = mySerial.read();
-    byte Byte4 = mySerial.read();
-    byte Byte5 = mySerial.read();
-    byte Byte6 = mySerial.read();
-    byte Byte7 = mySerial.read();
-    CompassAngle1 = (Byte2 - 0x30) * 100 + (Byte3 - 0x30) * 10 + (Byte4 - 0x30);//算出角度
-  }
-  if (CompassAngle1<0 || CompassAngle1>360)goto loop;//如果收到异常值，重新测量
-
-  mySerial.write(byte(0x31));//发送指令，第二次测量角度
-  delay(200);
-  if (mySerial.available()) {//共返回8个字节
-    byte Byte0 = mySerial.read();//开始读取缓冲区里的字节
-    byte Byte1 = mySerial.read();//byte型变量为字节型
-    byte Byte2 = mySerial.read();
-    byte Byte3 = mySerial.read();
-    byte Byte4 = mySerial.read();
-    byte Byte5 = mySerial.read();
-    byte Byte6 = mySerial.read();
-    byte Byte7 = mySerial.read();
-    CompassAngle2 = (Byte2 - 0x30) * 100 + (Byte3 - 0x30) * 10 + (Byte4 - 0x30);//算出角度
-  }
-  if (CompassAngle2 < 0 || CompassAngle2 > 360)goto loop;//如果收到异常值，重新测量
-
-  if (abs(CompassAngle2 - CompassAngle1) >= 5)goto loop;//如果两次测出的值相差较大，重新测量
-  else CompassAngle0 = 0.5*(CompassAngle1 + CompassAngle2);//求出最终值
-
-  return CompassAngle0;
 }
 
 void xunxian(int gezi) {
@@ -754,7 +869,7 @@ void bange() {
   stoping(0);
 }
 
-  void houtui(){
+void houtui(){
     digitalWrite(leftwheel0, HIGH);
     digitalWrite(leftwheel1, LOW);
     analogWrite(leften, 255);
@@ -789,7 +904,7 @@ void bange() {
     Serial.println("到达格点中央");
   }
 
-  int shengbo() {
+int shengbo() {
     int duration, cm1, cm2, cm3, cm;//测到的距离和转化为厘米单位的距离值
     int cha1, cha2, cha3;//三个值的差
 
@@ -837,7 +952,103 @@ void bange() {
     return cm;
   }
 
-  void uartReceive() {
+int shengbo1() {
+      int duration, cm1, cm2, cm3, cm;//测到的距离和转化为厘米单位的距离值
+      int cha1, cha2, cha3;//三个值的差
+
+      digitalWrite(pingPin1, LOW);
+      delayMicroseconds(2);
+      digitalWrite(pingPin1, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(pingPin1, LOW);
+      duration = pulseIn(echoPin1, HIGH);
+      cm1 = duration / 29 / 2;
+      Serial.print("第一次测量:");
+      Serial.print(cm1);//以厘米为单位
+      delay(10);
+
+      digitalWrite(pingPin1, LOW);
+      delayMicroseconds(2);
+      digitalWrite(pingPin1, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(pingPin1, LOW);
+      duration = pulseIn(echoPin1, HIGH);
+      cm2 = duration / 29 / 2;
+      Serial.print("第二次测量:");
+      Serial.print(cm2);//以厘米为单位
+      delay(10);//测量之间的等待时间为10ms
+
+      digitalWrite(pingPin1, LOW);
+      delayMicroseconds(2);
+      digitalWrite(pingPin1, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(pingPin1, LOW);
+      duration = pulseIn(echoPin1, HIGH);
+      cm3 = duration / 29 / 2;
+      Serial.print("第三次测量:");
+      Serial.println(cm3);//以厘米为单位
+
+      cha1 = abs(cm1 - cm2);
+      cha2 = abs(cm2 - cm3);
+      cha3 = abs(cm1 - cm3);
+      if (cha2>cha1&&cha3>cha1)cm = (cm1 + cm2) / 2;
+      if (cha1>cha2&&cha3>cha2)cm = (cm2 + cm3) / 2;
+      if (cha1>cha3&&cha2>cha3)cm = (cm1 + cm3) / 2;
+
+      Serial.print("实际距离：");
+      Serial.println(cm);
+      return cm;
+    }
+
+int shengbo2() {
+        int duration, cm1, cm2, cm3, cm;//测到的距离和转化为厘米单位的距离值
+        int cha1, cha2, cha3;//三个值的差
+
+        digitalWrite(pingPin2, LOW);
+        delayMicroseconds(2);
+        digitalWrite(pingPin2, HIGH);
+        delayMicroseconds(10);
+        digitalWrite(pingPin2, LOW);
+        duration = pulseIn(echoPin2, HIGH);
+        cm1 = duration / 29 / 2;
+        Serial.print("第一次测量:");
+        Serial.print(cm1);//以厘米为单位
+        delay(10);
+
+        digitalWrite(pingPin2, LOW);
+        delayMicroseconds(2);
+        digitalWrite(pingPin2, HIGH);
+        delayMicroseconds(10);
+        digitalWrite(pingPin2, LOW);
+        duration = pulseIn(echoPin2, HIGH);
+        cm2 = duration / 29 / 2;
+        Serial.print("第二次测量:");
+        Serial.print(cm2);//以厘米为单位
+        delay(10);//测量之间的等待时间为10ms
+
+        digitalWrite(pingPin2, LOW);
+        delayMicroseconds(2);
+        digitalWrite(pingPin2, HIGH);
+        delayMicroseconds(10);
+        digitalWrite(pingPin2, LOW);
+        duration = pulseIn(echoPin2, HIGH);
+        cm3 = duration / 29 / 2;
+        Serial.print("第三次测量:");
+        Serial.println(cm3);//以厘米为单位
+
+        cha1 = abs(cm1 - cm2);
+        cha2 = abs(cm2 - cm3);
+        cha3 = abs(cm1 - cm3);
+        if (cha2>cha1&&cha3>cha1)cm = (cm1 + cm2) / 2;
+        if (cha1>cha2&&cha3>cha2)cm = (cm2 + cm3) / 2;
+        if (cha1>cha3&&cha2>cha3)cm = (cm1 + cm3) / 2;
+
+        Serial.print("实际距离：");
+        Serial.println(cm);
+        return cm;
+      }
+
+void uartReceive() {
     bool endflag = 1;
     while (endflag == 1) {
       while (Serial.available()>0) {   //如果串口有数据
@@ -854,7 +1065,7 @@ void bange() {
     }
   }
 
-  void head(int h, char direction) {
+void head(int h, char direction) {
     byte fangxiang = direction - '0';//fangxiang是指目标方向
     if (fangxiang == h)return;
     if (h == 1) {
@@ -903,7 +1114,7 @@ void M1(){
   outString.concat(outchar);
 }
 
-void Ahuojia(char heng,char shu,int toward,char location,char height){
+void Ahuojia(char heng,char shu,int toward,char location){
   if((m+'0')!=heng||(n+'0')!=shu){//如果此时小车不在1号货架前
     M1();//开始制作M1指令
     if(toward==1)outString.concat(local[0]);
@@ -932,6 +1143,7 @@ void Ahuojia(char heng,char shu,int toward,char location,char height){
   Serial.print(outString);//让机械臂取物品
   outString="";
   delay(3000);
+  houtui();
   M1();//开始制作M1指令
   outString.concat(A[flag5]);
   Serial.print(outString);//让上位机安排路径
@@ -943,29 +1155,230 @@ void Ahuojia(char heng,char shu,int toward,char location,char height){
     head(h, inString[2*j+3]);//转弯
     step=inString[2*j+4]-'0';
     xunxian(step);
+    bange();
   }
   inString="";
   head(h,'3');//把车头调向正对A仓库
   outString="M8";
-  outString.concat(height);
+  outString.concat(A[flag5][4]);
   Serial.print(outString);//让机械臂放置物品
   outString="";
   delay(3000);
   flag5++;
 }
 
+void Bhuojia(char heng,char shu,int toward,char location){
+  if((m+'0')!=heng||(n+'0')!=shu){//如果此时小车不在1号货架前
+    M1();//开始制作M1指令
+    if(toward==1)outString.concat(local[0]);
+    else if(toward==4)outString.concat(local[1]);
+    else if(toward==3)outString.concat(local[2]);
+    else outString.concat(local[3]);
+    Serial.print(outString);//让上位机安排路径
+    outString="";//发送指令以后清空
+    uartReceive();//接收上位机指令
+            //解析指令
+    byte i = inString[2] - '0';//得出一共有几段路
+    for (byte j = 0; j<i; j++) {//循环判断路径
+      head(h, inString[2*j+3]);//转弯
+      step=inString[2*j+4]-'0';
+      xunxian(step);
+      bange();
+    }
+    inString="";
+    head(h,'0'+toward);//把车头调向正对仓库
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+  }
+  outString="M8";
+  outString.concat(location);
+  Serial.print(outString);//让机械臂取物品
+  outString="";
+  delay(3000);
+  houtui();
+  M1();//开始制作M1指令
+  while(things[0][flag7]!=0)flag7++;
+  outString.concat("10");
+  if(flag7==0||flag7==1)outString.concat("10");
+  else{
+    outString.concat("0");
+    outchar='0'+(10-flag7/2);
+    outString.concat(outchar);
+  }
+  Serial.print(outString);//让上位机安排路径
+  outString="";//发送指令以后清空
+  uartReceive();//接收上位机指令
+          //解析指令
+  byte i = inString[2] - '0';//得出一共有几段路
+  for (byte j = 0; j<i; j++) {//循环判断路径
+    head(h, inString[2*j+3]);//转弯
+    step=inString[2*j+4]-'0';
+    xunxian(step);
+    bange();
+  }
+  inString="";
+  head(h,'2');//把车头调向正对B仓库
+  outString="M8";
+  if(flag7%2==1)outString.concat("4");//下方格子
+  else outString.concat("5");//上方格子
+  Serial.print(outString);//让机械臂放置物品
+  outString="";
+  delay(3000);
+  flag7++;
+}
+
+void Chuojia(char heng,char shu,int toward,char location){
+  if((m+'0')!=heng||(n+'0')!=shu){//如果此时小车不在1号货架前
+    M1();//开始制作M1指令
+    if(toward==1)outString.concat(local[0]);
+    else if(toward==4)outString.concat(local[1]);
+    else if(toward==3)outString.concat(local[2]);
+    else outString.concat(local[3]);
+    Serial.print(outString);//让上位机安排路径
+    outString="";//发送指令以后清空
+    uartReceive();//接收上位机指令
+            //解析指令
+    byte i = inString[2] - '0';//得出一共有几段路
+    for (byte j = 0; j<i; j++) {//循环判断路径
+      head(h, inString[2*j+3]);//转弯
+      step=inString[2*j+4]-'0';
+      xunxian(step);
+      bange();
+    }
+    inString="";
+    head(h,'0'+toward);//把车头调向正对仓库
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+  }
+  outString="M8";
+  outString.concat(location);
+  Serial.print(outString);//让机械臂取物品
+  outString="";
+  delay(3000);
+  houtui();
+  M1();//开始制作M1指令
+  while(things[1][flag7]!=0)flag7++;
+  if(flag7==0||flag7==1)outString.concat("10");
+  else{
+    outString.concat("0");
+    outchar='0'+(10-flag7/2);
+    outString.concat(outchar);
+  }
+  outString.concat("01");
+  Serial.print(outString);//让上位机安排路径
+  outString="";//发送指令以后清空
+  uartReceive();//接收上位机指令
+          //解析指令
+  byte i = inString[2] - '0';//得出一共有几段路
+  for (byte j = 0; j<i; j++) {//循环判断路径
+    head(h, inString[2*j+3]);//转弯
+    step=inString[2*j+4]-'0';
+    xunxian(step);
+    bange();
+  }
+  inString="";
+  head(h,'1');//把车头调向正对C仓库
+  outString="M8";
+  if(flag7%2==1)outString.concat("4");//下方格子
+  else outString.concat("5");//上方格子
+  Serial.print(outString);//让机械臂放置物品
+  outString="";
+  delay(3000);
+  flag7++;
+}
+
+void Dhuojia(char heng,char shu,int toward,char location){
+  if((m+'0')!=heng||(n+'0')!=shu){//如果此时小车不在1号货架前
+    M1();//开始制作M1指令
+    if(toward==1)outString.concat(local[0]);
+    else if(toward==4)outString.concat(local[1]);
+    else if(toward==3)outString.concat(local[2]);
+    else outString.concat(local[3]);
+    Serial.print(outString);//让上位机安排路径
+    outString="";//发送指令以后清空
+    uartReceive();//接收上位机指令
+            //解析指令
+    byte i = inString[2] - '0';//得出一共有几段路
+    for (byte j = 0; j<i; j++) {//循环判断路径
+      head(h, inString[2*j+3]);//转弯
+      step=inString[2*j+4]-'0';
+      xunxian(step);
+      bange();
+    }
+    inString="";
+    head(h,'0'+toward);//把车头调向正对E仓库
+    xstraight();
+    delay(500);//向前走一点靠近货架以便抓取
+    clearing();
+  }
+  outString="M8";
+  outString.concat(location);
+  Serial.print(outString);//让机械臂取物品
+  outString="";
+  delay(3000);
+  houtui();
+  M1();//开始制作M1指令
+  while(things[2][flag7]!=0)flag7++;
+  outString.concat("01");
+  if(flag7==0||flag7==1)outString.concat("10");
+  else{
+    outString.concat("0");
+    outchar='0'+(1+flag7/2);
+    outString.concat(outchar);
+  }
+  Serial.print(outString);//让上位机安排路径
+  outString="";//发送指令以后清空
+  uartReceive();//接收上位机指令
+          //解析指令
+  byte i = inString[2] - '0';//得出一共有几段路
+  for (byte j = 0; j<i; j++) {//循环判断路径
+    head(h, inString[2*j+3]);//转弯
+    step=inString[2*j+4]-'0';
+    xunxian(step);
+    bange();
+  }
+  inString="";
+  head(h,'4');//把车头调向正对C仓库
+  outString="M8";
+  if(flag7%2==1)outString.concat("4");//下方格子
+  else outString.concat("5");//上方格子
+  Serial.print(outString);//让机械臂放置物品
+  outString="";
+  delay(3000);
+  flag7++;
+}
+
+void tiaozheng(int ms,int ns,char towards){
+  if(m!=ms||n!=ns){//如果此时小车不在1号货架前
+    M1();//开始制作M1指令
+    if(towards=='2')outString.concat(local[0]);
+    else if(towards=='1')outString.concat(local[1]);
+    else if(towards=='4')outString.concat(local[2]);
+    else outString.concat(local[3]);
+    Serial.print(outString);//让上位机安排路径
+    outString="";//发送指令以后清空
+    uartReceive();//接收上位机指令
+            //解析指令
+    byte i = inString[2] - '0';//得出一共有几段路
+    for (byte j = 0; j<i; j++) {//循环判断路径
+      head(h, inString[2*j+3]);//转弯
+      step=inString[2*j+4]-'0';
+      xunxian(step);
+      bange();//继续前进到格点中央为止
+    }
+    inString="";
+    head(h,towards);//把车头调向运动方向
+  }
+}
+
 void tance(int number){
   for(byte i=0;i<6;i++){
-    Serial.print("M91");//M9号命令是用来探测货架上有没有东西
-    uartReceive();//接收上位机指令
-    inString="";
-    if(shengbo()<10)things[number][flag6]=1;//看起来有货物
+    if(shengbo1()<10)things[number][flag6]=1;//看起来有货物
     else things[number][flag6]=0;
     flag6++;
-    Serial.print("M92")//让机械臂到下面一层
-    uartReceive();//接收上位机指令
-    inString="";
-    if(shengbo()<10)things[number][flag6]=1;//看起来有货物
+    if(shengbo2()<10)things[number][flag6]=1;//看起来有货物
     else things[number][flag6]=0;
     flag6++;
     xunxian(1);
