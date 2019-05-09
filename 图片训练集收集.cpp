@@ -22,7 +22,7 @@ using namespace std;
 
 Mat frame;//保存像素的二维张量
 char str[10];
-int i=0;
+int picname=0;
 
 int main() {
 	VideoCapture capture(0);//摄像头初始化
@@ -43,11 +43,11 @@ int main() {
 		//FILE *fp;读写文件的示例
 		//fopen_s(&fp, "train.txt", "r");
 		if (cvWaitKey(10) >= 0) {
-			sprintf_s(str, "%d.jpg", i);
+			sprintf_s(str, "%d.jpg", picname);
 			imwrite(str, frame);//将这张照片保存为1.jpg
 			imshow("图片", frame);//将这张照片显示出来
 			printf_s("已保存：%s\n", str);
-			i++;
+			picname++;
 			Sleep(1000);
 		}
 

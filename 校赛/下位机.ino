@@ -16,8 +16,10 @@
 * 删除了电子指南针所有的遗留程序@0508
 * 总体程序完成，正式进入debug阶段@0508
 * 使用delay转弯，不仅偏心而且不准,打算后退也巡线@0508
+* 用于机械臂的delay要修改@0510
+* 使用了起始符和终止符，串口稳定性增加@0510
 * by czl & robin
-* 2019/05/09
+* 2019/05/10
 */
 
 //引用的库函数
@@ -119,7 +121,7 @@ void setup() {
   delay(9000);//比赛开始后要停顿10s（少停一秒节约时间嘿嘿嘿）
 
         //开始运动
-  Serial.println("run");
+  Serial.println("M80");//让上位机保持拍照姿势
   xstraight();
   delay(1200);//因为传感器会把红色识别为白色，所以启动区不识别，直接向前
   xunxian(3);
@@ -174,7 +176,7 @@ void setup() {
 
   //下面测量旁边有没有障碍物，M6命令是用来说明有无障碍物
   if (shengbo()>40)Serial.print("M61N");//如果返回值满足某条件则告诉上位机没有障碍物
-  else Serial.print("M61Y");//如果返回值满足某条件则告诉上位机没有障碍物
+  else Serial.print("M61Y");//如果返回值满足某条件则告诉上位机有障碍物
 
   xunxian(2);
   bange();
@@ -545,7 +547,7 @@ void setup() {
   flag7=0;
 
   //程序结束
-  Serial.print("done");
+  Serial.print("M4");
 }
 
 void loop() {}
