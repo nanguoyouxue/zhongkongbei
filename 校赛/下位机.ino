@@ -153,9 +153,10 @@ void setup() {
   if (shengbo()>0)Serial.print("M62N");//如果返回值满足某条件则告诉上位机没有障碍物
   if (shengbo()<0)Serial.print("M62Y");//如果返回值满足某条件则告诉上位机没有障碍物
 
-  xunxian(4);//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>这边为了调试方便改了一下，要改回来
+  xunxian(3);//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>这边为了调试方便改了一下，要改回来
   bange();
-  left(600);//转45度的样子，数值未监修
+  left(500);//转45度的样子，数值未监修
+  stoping(0);
 
         //测量旁边有没有障碍物
   if (shengbo()>0)Serial.print("M63N");//如果返回值满足某条件则告诉上位机没有障碍物
@@ -176,7 +177,8 @@ void setup() {
 
   xunxian(3);
   bange();
-  left(600);//转45度的样子，数值未监修
+  left(500);//转45度的样子，数值未监修
+  stoping(0);
 
         //测量旁边有没有障碍物
   if (shengbo()>0)Serial.print("M65N");//如果返回值满足某条件则告诉上位机没有障碍物
@@ -196,6 +198,7 @@ void setup() {
   if (shengbo()<0)Serial.print("M66Y");//如果返回值满足某条件则告诉上位机没有障碍物
 
   xunxian(3);
+  bange();
   Rtleft();
   //第二圈运动开始，抓取小方块
   xunxian(2);
@@ -552,8 +555,23 @@ void Rtleft() {
   digitalWrite(rightwheel1, HIGH);
   analogWrite(righten, 255);
   //右边轮子正转
-  delay(1200);//延迟以免刚刚开始转动时遇到直行方向的白线
+  delay(1000);//延迟以免刚刚开始转动时遇到直行方向的白线
 
+  /*z1 = digitalRead(zhuan1);
+  z2 = digitalRead(zhuan2);
+  Serial.print("侧边红外数据：");
+  Serial.print(z1);
+  Serial.print(" ");
+  Serial.println(z2);
+  while ((z1 == 1 && z2 == 0)||(z1==0&&z2==0)||(z1==0&&z2==1)) {//当没有遇到白线时，继续左转
+    z1 = digitalRead(zhuan1);
+    z2 = digitalRead(zhuan2);
+    Serial.print("侧边红外数据：");
+    Serial.print(z1);
+    Serial.print(" ");
+    Serial.println(z2);
+    delay(5);
+  }*/
   stoping(0);
 
   if (h == 1)h = 4;//turn head
@@ -570,8 +588,23 @@ void Rtright() {
   digitalWrite(rightwheel1, LOW);
   analogWrite(righten, 255);
   //右边轮子反转
-  delay(1200);//延迟以免刚刚开始转动时遇到直行方向的白线
+  delay(1000);//延迟以免刚刚开始转动时遇到直行方向的白线
 
+  /*z1 = digitalRead(zhuan1);
+  z2 = digitalRead(zhuan2);
+  Serial.print("侧边红外数据：");
+  Serial.print(z1);
+  Serial.print(" ");
+  Serial.println(z2);
+  while ((z1 == 1 && z2 == 0)||(z1==0&&z2==0)||(z1==0&&z2==1)) {//当没有遇到白线时，继续左转
+    z1 = digitalRead(zhuan1);
+    z2 = digitalRead(zhuan2);
+    Serial.print("侧边红外数据：");
+    Serial.print(z1);
+    Serial.print(" ");
+    Serial.println(z2);
+    delay(5);
+  }*/
   stoping(0);
 
   if (h == 4)h = 1;//turn head
@@ -588,8 +621,23 @@ void banwan() {
   digitalWrite(rightwheel1, HIGH);
   analogWrite(righten, 255);
   //右边轮子正转
-  delay(600);
+  delay(500);
 
+  /*z1 = digitalRead(zhuan1);
+  z2 = digitalRead(zhuan2);
+  Serial.print("侧边红外数据：");
+  Serial.print(z1);
+  Serial.print(" ");
+  Serial.println(z2);
+  while (!(z1 == 1 && z2 == 1)) {//当没有遇到白线时，继续左转
+    z1 = digitalRead(zhuan1);
+    z2 = digitalRead(zhuan2);
+    Serial.print("侧边红外数据：");
+    Serial.print(z1);
+    Serial.print(" ");
+    Serial.println(z2);
+    delay(5);
+  }*/
   clearing();
 
   if (h == 1)h = 4;//turn head
@@ -847,7 +895,7 @@ void houtui(){
       z2 = digitalRead(zhuan2);
       delay(5);
     }
-    while (!(z1 == 1 && z2 == 1)) {//当没有遇到白线时，继续向前
+    while (!(z1 == 1 || z2 == 1)) {//当没有遇到白线时，继续向前
       z1 = digitalRead(zhuan1);
       z2 = digitalRead(zhuan2);
       Serial.print("侧边红外数据：");
@@ -1011,18 +1059,17 @@ void uartReceive() {
         char inChar = Serial.read(); //读取串口字符
                        //inString += inChar;
         inString.concat(inChar);     //连接接收到的字符组
-        delayMicroseconds(100);      //为了防止数据丢失,在此设置短暂延时100us
-        Serial.flush();             //清空串口接收缓存
+        delay(1);      //为了防止数据丢失,在此设置短暂延时1ms
         if (inString.length() > 200) {
           inString = "";
         }
-        endflag = 0;
         if(inString[0]!='M'){
           endflag=1;
           inString="";
         }
-
       }
+      endflag = 0;
+      Serial.flush();             //清空串口接收缓存
     }
   }
 
