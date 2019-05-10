@@ -98,7 +98,7 @@ int main() {
 
 bool COM3() {
 loop:m_hComm = CreateFile(//打开端口
-	"COM3:",//机械臂使用COM3端口
+	"COM4:",//机械臂使用COM3端口
 	GENERIC_READ | GENERIC_WRITE,  //允许读和写
 	0,                           //独占方式（共享模式）此处必须独占
 	NULL,
@@ -200,7 +200,7 @@ void arm(char *psendbuf) {
 
 bool COM5() {
 loop:m_hComm0 = CreateFile(//打开端口
-	"COM5:",//下位机使用COM5端口
+	"COM9:",//下位机使用COM5端口
 	GENERIC_READ | GENERIC_WRITE,  //允许读和写
 	0,                           //独占方式（共享模式）此处必须独占
 	NULL,
@@ -296,6 +296,7 @@ void tance() {
 		if (recvBuf0[1] == '5') {
 			printf("开始拍照……\n");
 			if (recvBuf0[2] == '1') {
+				printf("Warnig：如果程序突然退出，请检查图片是否删除!!!\n");
 				capture >> frame;//将摄像头的一帧赋值给变量
 								 //照片裁剪
 				transpose(frame, frame);
@@ -305,7 +306,7 @@ void tance() {
 									//保存图片
 				sprintf_s(str, "%d.jpg", picname);
 				imwrite(str, frame);//将这张照片保存为*.jpg
-				imshow("图片", frame);//将这张照片显示出来
+				//imshow("图片", frame);//将这张照片显示出来
 				printf_s("已保存：%s\n", str);
 				picname++;
 				strcpy_s(psendbuf0, "M6!");
@@ -324,7 +325,7 @@ void tance() {
 									//保存图片
 				sprintf_s(str, "%d.jpg", picname);
 				imwrite(str, frame);//将这张照片保存为*.jpg
-				imshow("图片", frame);//将这张照片显示出来
+				//imshow("图片", frame);//将这张照片显示出来
 				printf_s("已保存：%s\n", str);
 				picname++;
 				strcpy_s(psendbuf0, "M6!");
@@ -360,7 +361,7 @@ void tance() {
 			//回复arduino
 			sprintf_s(psendbuf0, "M%s!", drink);
 			psendbuf0 = drink;*/
-			strcpy_s(psendbuf, "M111222333444!");//视觉识别暂时不加，先这样<<<<<<<<<<<<<<<<<<<<<<<
+			strcpy_s(psendbuf0, "M111222333444!");//视觉识别暂时不加，先这样<<<<<<<<<<<<<<<<<<<<<<<
 			printf_s("向arduino发送：%s\n", psendbuf0);
 			WriteFile(m_hComm0, psendbuf0, 20, &dwactlen0, NULL);
 			PurgeComm(m_hComm0, PURGE_TXCLEAR);//每次发完指令都要清空输出寄存器
