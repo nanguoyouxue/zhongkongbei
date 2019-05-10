@@ -150,19 +150,14 @@ void setup() {
   digitalWrite(rightwheel1, LOW);
   analogWrite(righten, 255);
   //右边轮子反转
-  delay(300);
+  delay(500);//以免碰到刚才的白线
   z1 = digitalRead(zhuan1);
   z2 = digitalRead(zhuan2);
   /*Serial.print("侧边红外数据：");
   Serial.print(z1);
   Serial.print(" ");
   Serial.println(z2);*/
-  while (z1 == 1 && z2 == 1) {//如果本来就在白线上，应该忽略
-    z1 = digitalRead(zhuan1);
-    z2 = digitalRead(zhuan2);
-    delay(5);
-  }
-  while (!(z1 == 1 || z2 == 1)) {//当没有遇到白线时，继续向前
+  while (!(z1 == 1 || z2 == 1)) {//当没有遇到白线时，继续后退
     z1 = digitalRead(zhuan1);
     z2 = digitalRead(zhuan2);
     /*Serial.print("侧边红外数据：");
@@ -883,7 +878,7 @@ void bange() {
     Serial.println(z2);*/
     delay(5);
   }
-  delay(30);
+  //如果还是太前面，要考虑是否加上后退的delay
   stoping(10);
 }
 
@@ -1170,7 +1165,8 @@ void Ahuojia(char heng,char shu,int toward,char location){
   outString.concat(location);
   Serial.print(outString);//让机械臂取物品
   outString="";
-  delay(3000);
+  uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
+  inString = "";
   houtui();
   M1();//开始制作M1指令
   outString.concat(A[flag5]);
@@ -1192,7 +1188,8 @@ void Ahuojia(char heng,char shu,int toward,char location){
   outString.concat(A[flag5][4]);
   Serial.print(outString);//让机械臂放置物品
   outString="";
-  delay(3000);
+  uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
+  inString = "";
   forward(200);//回到原点
   flag5++;
 }
@@ -1224,7 +1221,8 @@ void Bhuojia(char heng,char shu,int toward,char location){
   outString.concat(location);
   Serial.print(outString);//让机械臂取物品
   outString="";
-  delay(3000);
+  uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
+  inString = "";
   houtui();
   M1();//开始制作M1指令
   while(things[0][flag7]!=0)flag7++;
@@ -1254,7 +1252,8 @@ void Bhuojia(char heng,char shu,int toward,char location){
   else outString.concat("5");//上方格子
   Serial.print(outString);//让机械臂放置物品
   outString="";
-  delay(3000);
+  uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
+  inString = "";
   forward(200);
   flag7++;
 }
@@ -1286,7 +1285,6 @@ void Chuojia(char heng,char shu,int toward,char location){
   outString.concat(location);
   Serial.print(outString);//让机械臂取物品
   outString="";
-  delay(3000);
   houtui();
   M1();//开始制作M1指令
   while(things[1][flag7]!=0)flag7++;
@@ -1316,7 +1314,8 @@ void Chuojia(char heng,char shu,int toward,char location){
   else outString.concat("5");//上方格子
   Serial.print(outString);//让机械臂放置物品
   outString="";
-  delay(3000);
+  uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
+  inString = "";
   forward(200);
   flag7++;
 }
@@ -1348,7 +1347,8 @@ void Dhuojia(char heng,char shu,int toward,char location){
   outString.concat(location);
   Serial.print(outString);//让机械臂取物品
   outString="";
-  delay(3000);
+  uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
+  inString = "";
   houtui();
   M1();//开始制作M1指令
   while(things[2][flag7]!=0)flag7++;
@@ -1378,8 +1378,9 @@ void Dhuojia(char heng,char shu,int toward,char location){
   else outString.concat("5");//上方格子
   Serial.print(outString);//让机械臂放置物品
   outString="";
-  delay(3000);
-  forward();
+  uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
+  inString = "";
+  forward(200);
   flag7++;
 }
 
@@ -1408,10 +1409,10 @@ void tiaozheng(int ms,int ns,char towards){
 
 void tance(int number){
   for(int i=0;i<6;i++){
-    if(shengbo1()<10)things[number][flag6]=1;//看起来有货物
+    if(shengbo1()<40)things[number][flag6]=1;//看起来有货物
     else things[number][flag6]=0;
     flag6++;
-    if(shengbo2()<10)things[number][flag6]=1;//看起来有货物
+    if(shengbo2()<40)things[number][flag6]=1;//看起来有货物
     else things[number][flag6]=0;
     flag6++;
     xunxian(1);
