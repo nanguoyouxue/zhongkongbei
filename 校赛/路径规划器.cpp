@@ -47,10 +47,10 @@ int main() {
   case 5:spot[2][2] = 1; break;
   case 6:spot[2][5] = 1; break;
   }
-  
+
   a = m;
   b = n;//开始在出发点
-  
+
   shitan();
 
   for (int k = 1; k < beststep; k++) {
@@ -59,7 +59,7 @@ int main() {
     else if (bestroad[k] == 3)printf_s("下\n");
     else if (bestroad[k] == 4)printf_s("左 \n");
   }
-  
+
   //将bestroad翻译成串口语言
   line[0]='#';
   line[1]='1';
@@ -69,12 +69,12 @@ int main() {
     { if(i==1) count=1;
      else if(i>=2&&bestroad[i]==bestroad[i-1]) count++;
        else {line[j]='0'+bestroad[i-1];line[j+1]='0'+count;count=1;j=j+2;p++;}
-   if(i==beststep-1) {line[j]='0'+bestroad[i-1];line[j+1]='0'+count;}
+   if(i==beststep-1) {line[j]='0'+bestroad[i];line[j+1]='0'+count;}
      }
-  } 
+  }
   line[2]='0'+p;
   printf_s("%s",line);
-  
+
   return 0;
 }
 
@@ -82,7 +82,7 @@ int main() {
 void shitan() {
   if (a == x && b == y) {
     if (steps + turns < best) {
-      for (int k = 1; k < number; k++) 
+      for (int k = 1; k < number; k++)
         bestroad[k] = direction[k];
       best = steps + turns;
       beststep = number;
