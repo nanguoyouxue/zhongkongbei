@@ -64,6 +64,13 @@ int i, j;//计数变量
 int p = 1;//路径规划相关
 void shitan();//路径规划
 char drink[20];
+int flag8 = 1;//视觉识别标识符
+Mat image_src;
+Mat imageROI;
+Mat TempImg;
+errno_t err;
+
+
 
 //子线程
 pthread_t t1;                           //pthread_t变量t1，用于存储线程ID
@@ -74,7 +81,66 @@ VideoCapture capture(0);//摄像头初始化
 
 void* My_thread(void* args) {            //子线程函数
 										 //clock_t start = clock();
-	system("python E:\\lalala\\classify_image_inception_v3.py");
+	while (picname <= flag8) {
+		Sleep(1000);
+	}
+	system("python E:\\lalala\\classify_image_inception_v3-1.py");//1
+	flag8++;
+	while (picname <= flag8) {
+		Sleep(1000);
+	}
+	system("python E:\\lalala\\classify_image_inception_v3-2.py");//2
+	flag8++;
+	while (picname <= flag8) {
+		Sleep(1000);
+	}
+	system("python E:\\lalala\\classify_image_inception_v3-3.py");//3
+	flag8++;
+	while (picname <= flag8) {
+		Sleep(1000);
+	}
+	system("python E:\\lalala\\classify_image_inception_v3-4.py");//4
+	flag8++;
+	while (picname <= flag8) {
+		Sleep(1000);
+	}
+	system("python E:\\lalala\\classify_image_inception_v3-5.py");//5
+	flag8++;
+	while (picname <= flag8) {
+		Sleep(1000);
+	}
+	system("python E:\\lalala\\classify_image_inception_v3-6.py");//6
+	flag8++;
+	while (picname <= flag8) {
+		Sleep(1000);
+	}
+	system("python E:\\lalala\\classify_image_inception_v3-7.py");//7
+	flag8++;
+	while (picname <= flag8) {
+		Sleep(1000);
+	}
+	system("python E:\\lalala\\classify_image_inception_v3-8.py");//8
+	flag8++;
+	while (picname <= flag8) {
+		Sleep(1000);
+	}
+	system("python E:\\lalala\\classify_image_inception_v3-9.py");//9
+	flag8++;
+	while (picname <= flag8) {
+		Sleep(1000);
+	}
+	system("python E:\\lalala\\classify_image_inception_v3-10.py");//10
+	flag8++;
+	while (picname <= flag8) {
+		Sleep(1000);
+	}
+	system("python E:\\lalala\\classify_image_inception_v3-11.py");//11
+	flag8++;
+	while (picname <= flag8) {
+		Sleep(1000);
+	}
+	system("python E:\\lalala\\classify_image_inception_v3-12.py");//12
+	flag8++;
 	//clock_t end = (clock() - start) / CLOCKS_PER_SEC;//计时器
 	//cout << "time comsumption is " << end << endl;
 	return NULL;
@@ -88,9 +154,8 @@ int main() {
 	hello();//接收打招呼信息，准备完毕
 
 	if (COM5() == FALSE) return 0;//COM5（下位机）接口初始化
-
-
-								  //开始工作
+	pthread_create(&t1, NULL, My_thread, NULL);  //创建缺省线程
+												 //开始工作
 	while (endflag == 1)tance();//开始接收arduino发出的指令
 
 	Close();
@@ -302,12 +367,29 @@ void tance() {
 								 //照片裁剪
 				transpose(frame, frame);
 				flip(frame, frame, 1);//逆时针旋转270°
-				Rect area(60, 0, 360, 640);//前两个值是起点坐标，后两个是横竖的长度
-				frame = frame(area);//裁剪照片去黑边
-									//保存图片
+									  //保存图片
+				image_src = frame.clone();
+				imageROI = image_src(Rect(60, 280, 120, 150));
+				imageROI.convertTo(TempImg, TempImg.type());
 				sprintf_s(str, "%d.jpg", picname);
-				imwrite(str, frame);//将这张照片保存为*.jpg
-									//imshow("图片", frame);//将这张照片显示出来
+				imwrite(str, TempImg);//将这张照片保存为*.jpg
+									  //imshow("图片", frame);//将这张照片显示出来
+				printf_s("已保存：%s\n", str);
+				picname++;
+				image_src = frame.clone();
+				imageROI = image_src(Rect(180, 280, 120, 150));
+				imageROI.convertTo(TempImg, TempImg.type());
+				sprintf_s(str, "%d.jpg", picname);
+				imwrite(str, TempImg);//将这张照片保存为*.jpg
+									  //imshow("图片", frame);//将这张照片显示出来
+				printf_s("已保存：%s\n", str);
+				picname++;
+				image_src = frame.clone();
+				imageROI = image_src(Rect(300, 280, 120, 150));
+				imageROI.convertTo(TempImg, TempImg.type());
+				sprintf_s(str, "%d.jpg", picname);
+				imwrite(str, TempImg);//将这张照片保存为*.jpg
+									  //imshow("图片", frame);//将这张照片显示出来
 				printf_s("已保存：%s\n", str);
 				picname++;
 				strcpy_s(psendbuf0, "M6!");
@@ -321,12 +403,13 @@ void tance() {
 								 //照片裁剪
 				transpose(frame, frame);
 				flip(frame, frame, 1);//逆时针旋转270°
-				Rect area(60, 0, 360, 640);//前两个值是起点坐标，后两个是横竖的长度
-				frame = frame(area);//裁剪照片去黑边
-									//保存图片
+									  //保存图片
+				image_src = frame.clone();
+				imageROI = image_src(Rect(60, 320, 120, 200));
+				imageROI.convertTo(TempImg, TempImg.type());
 				sprintf_s(str, "%d.jpg", picname);
-				imwrite(str, frame);//将这张照片保存为*.jpg
-									//imshow("图片", frame);//将这张照片显示出来
+				imwrite(str, TempImg);//将这张照片保存为*.jpg
+									  //imshow("图片", frame);//将这张照片显示出来
 				printf_s("已保存：%s\n", str);
 				picname++;
 				strcpy_s(psendbuf0, "M6!");
@@ -352,19 +435,26 @@ void tance() {
 			memset(recvBuf0, 0, sizeof recvBuf0);
 		}
 		else if (recvBuf0[1] == '7') {
-			memset(recvBuf0, 0, sizeof recvBuf0);
-			/*memset(drink, 0, sizeof drink);
+			/*memset(recvBuf0, 0, sizeof recvBuf0);
+			memset(drink, 0, sizeof drink);
+			memset(drink, 0, sizeof drink);
+			printf("111\n");
 			FILE *fp;//开始读写的句柄
+			printf("222\n");
 			fopen_s(&fp, "predict_result.txt", "r+");//打开保存结果的文件
-			fscanf_s(fp, "%s", &drink);
-			fclose(fp);
+			printf("333\n");
+			for (int k = 0; k < 12; k++) {
+				fscanf_s(fp, "%c", &drink[k]);
+			}
+			printf("444\n");
+			fclose(fp);*/
 
 			//回复arduino
-			sprintf_s(psendbuf0, "M%s!", drink);
-			psendbuf0 = drink;*/
-			strcpy_s(psendbuf0, "M111222333444!");//视觉识别暂时不加，先这样<<<<<<<<<<<<<<<<<<<<<<<
+			//sprintf_s(psendbuf0, "M%s!", drink);
+			//psendbuf0 = drink;
+			strcpy_s(psendbuf0, "M212212212333!");//视觉识别暂时不加，先这样<<<<<<<<<<<<<<<<<<<<<<<
 			printf_s("向arduino发送：%s\n", psendbuf0);
-			WriteFile(m_hComm0, psendbuf0, 20, &dwactlen0, NULL);
+			WriteFile(m_hComm0, psendbuf0, 30, &dwactlen0, NULL);
 			PurgeComm(m_hComm0, PURGE_TXCLEAR);//每次发完指令都要清空输出寄存器
 			memset(psendbuf0, 0, sizeof psendbuf0);//每次发完指令也要清空保存指令的字符串
 		}
@@ -408,44 +498,50 @@ void tance() {
 		}
 		else if (recvBuf0[1] == '8') {
 			if (recvBuf0[2] == '0') {//未监修
-				strcpy_s(psendbuf, "{G0000#000P2150T1000!#001P2100T1000!#002P2100T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);//回到初始状态
+				strcpy_s(psendbuf, "{G0000#000P2150T1000!#001P2100T1000!#002P2100T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);//拍照姿势
 			}
 			else if (recvBuf0[2] == '1') {//左边抓
 				strcpy_s(psendbuf, "{G0000#000P1500T1000!#001P1500T1000!#002P1500T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);//回到初始状态
-				strcpy_s(psendbuf, "{G0001#000P1800T1000!#001P1500T1000!#002P1500T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0002#000P1800T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0003#000P1800T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1800T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0004#000P1800T1000!#001P0900T1000!#002P1550T1000!#003P1600T1000!#004P1500T1000!#005P1800T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0005#000P1800T1000!#001P0900T1000!#002P1550T1000!#003P1600T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0006#000P1500T1000!#001P1500T1000!#002P1500T1000!#003P1500T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0001#000P1800T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0002#000P1800T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0003#000P1800T1000!#001P1030T1000!#002P2250T1000!#003P900T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0004#000P1800T1000!#001P1500T1000!#002P2250T1000!#003P900T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0005#000P1800T1000!#001P0900T1000!#002P1800T1000!#003P91140T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0006#000P1800T1000!#001P0800T1000!#002P1700T1000!#003P1200T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0007#000P1800T1000!#001P0900T1000!#002P1550T1000!#003P1600T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0008#000P1500T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 			}
 			else if (recvBuf0[2] == '2') {//中间抓
 				strcpy_s(psendbuf, "{G0000#000P1500T1000!#001P1500T1000!#002P1500T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);//回到初始状态
 				strcpy_s(psendbuf, "{G0001#000P1500T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0002#000P1500T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1800T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0003#000P1500T1000!#001P0900T1000!#002P1550T1000!#003P1600T1000!#004P1500T1000!#005P1800T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0004#000P1500T1000!#001P0900T1000!#002P1550T1000!#003P1600T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0005#000P1500T1000!#001P1500T1000!#002P1500T1000!#003P1500T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0002#000P1500T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0003#000P1500T1000!#001P1500T1000!#002P2250T1000!#003P900T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0004#000P1500T1000!#001P1030T1000!#002P2250T1000!#003P900T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0005#000P1500T1000!#001P0900T1000!#002P1800T1000!#003P91140T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0006#000P1500T1000!#001P0800T1000!#002P1700T1000!#003P1200T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0007#000P1500T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 			}
 			else if (recvBuf0[2] == '3') {//右边抓
 				strcpy_s(psendbuf, "{G0000#000P1500T1000!#001P1500T1000!#002P1500T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);//回到初始状态
-				strcpy_s(psendbuf, "{G0001#000P1200T1000!#001P1500T1000!#002P1500T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0002#000P1200T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0003#000P1200T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1800T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0004#000P1200T1000!#001P0900T1000!#002P1550T1000!#003P1600T1000!#004P1500T1000!#005P1800T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0005#000P1200T1000!#001P0900T1000!#002P1550T1000!#003P1600T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0006#000P1500T1000!#001P1500T1000!#002P1500T1000!#003P1500T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0001#000P1200T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0002#000P1200T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0003#000P1200T1000!#001P1030T1000!#002P2250T1000!#003P900T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0004#000P1200T1000!#001P1500T1000!#002P2250T1000!#003P900T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0005#000P1200T1000!#001P0900T1000!#002P1800T1000!#003P91140T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0006#000P1200T1000!#001P0800T1000!#002P1700T1000!#003P1200T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0007#000P1200T1000!#001P0900T1000!#002P1550T1000!#003P1600T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0008#000P1500T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 			}
 			else if (recvBuf0[2] == '4') {//下面格子
 				strcpy_s(psendbuf, "{G0001#000P1500T1000!#001P2100T1000!#002P2100T1000!#003P1500T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0002#000P1500T1000!#001P2100T1000!#002P2500T1000!#003P0800T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0003#000P1500T1000!#001P1350T1000!#002P2500T1000!#003P0800T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0004#000P1500T1000!#001P1250T1000!#002P2500T1000!#003P0800T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0004#000P1500T1000!#001P1250T1000!#002P2350T1000!#003P0800T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0005#000P1500T1000!#001P1150T1000!#002P2100T1000!#003P1100T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0006#000P1500T1000!#001P0900T1000!#002P1500T1000!#003P1500T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0007#000P1500T1000!#001P0900T1000!#002P1500T1000!#003P1500T1000!#004P1500T1000!#005P1800T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0008#000P1500T1000!#001P1150T1000!#002P2100T1000!#003P1100T1000!#004P1500T1000!#005P1800T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0009#000P1500T1000!#001P1250T1000!#002P2500T1000!#003P0800T1000!#004P1500T1000!#005P1800T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0009#000P1500T1000!#001P1250T1000!#002P2350T1000!#003P0800T1000!#004P1500T1000!#005P1800T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0010#000P1500T1000!#001P1350T1000!#002P2500T1000!#003P0800T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0011#000P1500T1000!#001P2100T1000!#002P2500T1000!#003P0800T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0012#000P1500T1000!#001P2100T1000!#002P2100T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);
@@ -466,8 +562,13 @@ void tance() {
 			memset(psendbuf0, 0, sizeof psendbuf0);//每次发完指令也要清空保存指令的字符串
 		}
 		else if (recvBuf0[1] == '9') {
-			strcpy_s(psendbuf, "{G0000#000P1500T1000!#001P1500T1000!#002P1500T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);//回到初始状态
+			strcpy_s(psendbuf, "{G0000#000P0850T1000!#001P1500T1000!#002P1500T1000!#003P1500T1000!#004P1500T1000!#005P1500T1000!}"); arm(psendbuf);//超声波姿势
 			memset(recvBuf0, 0, sizeof recvBuf0);
+			strcpy_s(psendbuf0, "M6!");
+			printf_s("向arduino发送：%s\n", psendbuf0);
+			WriteFile(m_hComm0, psendbuf0, 10, &dwactlen0, NULL);
+			PurgeComm(m_hComm0, PURGE_TXCLEAR);//每次发完指令都要清空输出寄存器
+			memset(psendbuf0, 0, sizeof psendbuf0);//每次发完指令也要清空保存指令的字符串
 		}
 		else if (recvBuf0[1] == '4') {
 			memset(recvBuf0, 0, sizeof recvBuf0);
