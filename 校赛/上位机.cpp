@@ -64,87 +64,6 @@ int i, j;//计数变量
 int p = 1;//路径规划相关
 void shitan();//路径规划
 char drink[20];
-int flag8 = 1;//视觉识别标识符
-Mat image_src;
-Mat imageROI;
-Mat TempImg;
-errno_t err;
-
-
-
-//子线程
-pthread_t t1;                           //pthread_t变量t1，用于存储线程ID
-bool endflag = 1;
-
-//色相机准备
-VideoCapture capture(0);//摄像头初始化
-
-void* My_thread(void* args) {            //子线程函数
-										 //clock_t start = clock();
-	while (picname <= flag8) {
-		Sleep(1000);
-	}
-	system("python E:\\lalala\\classify_image_inception_v3-1.py");//1
-	flag8++;
-	while (picname <= flag8) {
-		Sleep(1000);
-	}
-	system("python E:\\lalala\\classify_image_inception_v3-2.py");//2
-	flag8++;
-	while (picname <= flag8) {
-		Sleep(1000);
-	}
-	system("python E:\\lalala\\classify_image_inception_v3-3.py");//3
-	flag8++;
-	while (picname <= flag8) {
-		Sleep(1000);
-	}
-	system("python E:\\lalala\\classify_image_inception_v3-4.py");//4
-	flag8++;
-	while (picname <= flag8) {
-		Sleep(1000);
-	}
-	system("python E:\\lalala\\classify_image_inception_v3-5.py");//5
-	flag8++;
-	while (picname <= flag8) {
-		Sleep(1000);
-	}
-	system("python E:\\lalala\\classify_image_inception_v3-6.py");//6
-	flag8++;
-	while (picname <= flag8) {
-		Sleep(1000);
-	}
-	system("python E:\\lalala\\classify_image_inception_v3-7.py");//7
-	flag8++;
-	while (picname <= flag8) {
-		Sleep(1000);
-	}
-	system("python E:\\lalala\\classify_image_inception_v3-8.py");//8
-	flag8++;
-	while (picname <= flag8) {
-		Sleep(1000);
-	}
-	system("python E:\\lalala\\classify_image_inception_v3-9.py");//9
-	flag8++;
-	while (picname <= flag8) {
-		Sleep(1000);
-	}
-	system("python E:\\lalala\\classify_image_inception_v3-10.py");//10
-	flag8++;
-	while (picname <= flag8) {
-		Sleep(1000);
-	}
-	system("python E:\\lalala\\classify_image_inception_v3-11.py");//11
-	flag8++;
-	while (picname <= flag8) {
-		Sleep(1000);
-	}
-	system("python E:\\lalala\\classify_image_inception_v3-12.py");//12
-	flag8++;
-	//clock_t end = (clock() - start) / CLOCKS_PER_SEC;//计时器
-	//cout << "time comsumption is " << end << endl;
-	return NULL;
-}
 
 //-------(￣▽￣)／程序开始---------
 int main() {
@@ -362,36 +281,6 @@ void tance() {
 		if (recvBuf0[1] == '5') {
 			printf("开始拍照……\n");
 			if (recvBuf0[2] == '1') {
-				printf("Warnig：如果程序突然退出，请检查图片是否删除!!!\n");
-				capture >> frame;//将摄像头的一帧赋值给变量
-								 //照片裁剪
-				transpose(frame, frame);
-				flip(frame, frame, 1);//逆时针旋转270°
-									  //保存图片
-				image_src = frame.clone();
-				imageROI = image_src(Rect(60, 280, 120, 150));
-				imageROI.convertTo(TempImg, TempImg.type());
-				sprintf_s(str, "%d.jpg", picname);
-				imwrite(str, TempImg);//将这张照片保存为*.jpg
-									  //imshow("图片", frame);//将这张照片显示出来
-				printf_s("已保存：%s\n", str);
-				picname++;
-				image_src = frame.clone();
-				imageROI = image_src(Rect(180, 280, 120, 150));
-				imageROI.convertTo(TempImg, TempImg.type());
-				sprintf_s(str, "%d.jpg", picname);
-				imwrite(str, TempImg);//将这张照片保存为*.jpg
-									  //imshow("图片", frame);//将这张照片显示出来
-				printf_s("已保存：%s\n", str);
-				picname++;
-				image_src = frame.clone();
-				imageROI = image_src(Rect(300, 280, 120, 150));
-				imageROI.convertTo(TempImg, TempImg.type());
-				sprintf_s(str, "%d.jpg", picname);
-				imwrite(str, TempImg);//将这张照片保存为*.jpg
-									  //imshow("图片", frame);//将这张照片显示出来
-				printf_s("已保存：%s\n", str);
-				picname++;
 				strcpy_s(psendbuf0, "M6!");
 				printf_s("向arduino发送：%s\n", psendbuf0);
 				WriteFile(m_hComm0, psendbuf0, 10, &dwactlen0, NULL);
@@ -399,19 +288,6 @@ void tance() {
 				memset(psendbuf0, 0, sizeof psendbuf0);//每次发完指令也要清空保存指令的字符串
 			}
 			if (recvBuf0[2] == '2') {
-				capture >> frame;//将摄像头的一帧赋值给变量
-								 //照片裁剪
-				transpose(frame, frame);
-				flip(frame, frame, 1);//逆时针旋转270°
-									  //保存图片
-				image_src = frame.clone();
-				imageROI = image_src(Rect(60, 320, 120, 200));
-				imageROI.convertTo(TempImg, TempImg.type());
-				sprintf_s(str, "%d.jpg", picname);
-				imwrite(str, TempImg);//将这张照片保存为*.jpg
-									  //imshow("图片", frame);//将这张照片显示出来
-				printf_s("已保存：%s\n", str);
-				picname++;
 				strcpy_s(psendbuf0, "M6!");
 				printf_s("向arduino发送：%s\n", psendbuf0);
 				WriteFile(m_hComm0, psendbuf0, 10, &dwactlen0, NULL);
@@ -435,23 +311,6 @@ void tance() {
 			memset(recvBuf0, 0, sizeof recvBuf0);
 		}
 		else if (recvBuf0[1] == '7') {
-			/*memset(recvBuf0, 0, sizeof recvBuf0);
-			memset(drink, 0, sizeof drink);
-			memset(drink, 0, sizeof drink);
-			printf("111\n");
-			FILE *fp;//开始读写的句柄
-			printf("222\n");
-			fopen_s(&fp, "predict_result.txt", "r+");//打开保存结果的文件
-			printf("333\n");
-			for (int k = 0; k < 12; k++) {
-				fscanf_s(fp, "%c", &drink[k]);
-			}
-			printf("444\n");
-			fclose(fp);*/
-
-			//回复arduino
-			//sprintf_s(psendbuf0, "M%s!", drink);
-			//psendbuf0 = drink;
 			strcpy_s(psendbuf0, "M212212212333!");//视觉识别暂时不加，先这样<<<<<<<<<<<<<<<<<<<<<<<
 			printf_s("向arduino发送：%s\n", psendbuf0);
 			WriteFile(m_hComm0, psendbuf0, 30, &dwactlen0, NULL);
