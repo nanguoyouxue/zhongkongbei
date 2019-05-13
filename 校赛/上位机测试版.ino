@@ -65,13 +65,17 @@ int p = 1;//路径规划相关
 void shitan();//路径规划
 char drink[20];
 int endflag = 1;
-
+int flag8 = 1;//视觉识别标识符
+Mat image_src;
+Mat imageROI;
+Mat TempImg;
+VideoCapture capture(0);
 //-------(￣▽￣)／程序开始---------
 int main() {
 	printf("删除所有照片！！！！\n");
 	//串口准备
-	if (COM3() == FALSE) return 0;//COM3（机械臂）接口初始化
-	hello();//接收打招呼信息，准备完毕
+	//if (COM3() == FALSE) return 0;//COM3（机械臂）接口初始化
+	//hello();//接收打招呼信息，准备完毕
 
 	if (COM5() == FALSE) return 0;//COM5（下位机）接口初始化
 	while (endflag == 1)tance();//开始接收arduino发出的指令
@@ -280,7 +284,36 @@ void tance() {
 		if (recvBuf0[1] == '5') {
 			printf("开始拍照……\n");
 			if (recvBuf0[2] == '1') {
-				strcpy_s(psendbuf0, "M6!");
+				capture >> frame;//将摄像头的一帧赋值给变量
+								 //照片裁剪
+				transpose(frame, frame);
+				flip(frame, frame, 1);//逆时针旋转270°
+									  //保存图片
+				image_src = frame.clone();
+				imageROI = image_src(Rect(60, 280, 120, 150));
+				imageROI.convertTo(TempImg, TempImg.type());
+				sprintf_s(str, "%d.jpg", picname);
+				imwrite(str, TempImg);//将这张照片保存为*.jpg
+									  //imshow("图片", frame);//将这张照片显示出来
+				printf_s("已保存：%s\n", str);
+				picname++;
+				image_src = frame.clone();
+				imageROI = image_src(Rect(180, 280, 120, 150));
+				imageROI.convertTo(TempImg, TempImg.type());
+				sprintf_s(str, "%d.jpg", picname);
+				imwrite(str, TempImg);//将这张照片保存为*.jpg
+									  //imshow("图片", frame);//将这张照片显示出来
+				printf_s("已保存：%s\n", str);
+				picname++;
+				image_src = frame.clone();
+				imageROI = image_src(Rect(300, 280, 120, 150));
+				imageROI.convertTo(TempImg, TempImg.type());
+				sprintf_s(str, "%d.jpg", picname);
+				imwrite(str, TempImg);//将这张照片保存为*.jpg
+									  //imshow("图片", frame);//将这张照片显示出来
+				printf_s("已保存：%s\n", str);
+				picname++;
+				strcpy_s(psendbuf0, "Ma!");
 				printf_s("向arduino发送：%s\n", psendbuf0);
 				WriteFile(m_hComm0, psendbuf0, 10, &dwactlen0, NULL);
 				PurgeComm(m_hComm0, PURGE_TXCLEAR);//每次发完指令都要清空输出寄存器
@@ -310,7 +343,7 @@ void tance() {
 			memset(recvBuf0, 0, sizeof recvBuf0);
 		}
 		else if (recvBuf0[1] == '7') {
-			strcpy_s(psendbuf0, "M313412214324!");//视觉识别暂时不加，先这样<<<<<<<<<<<<<<<<<<<<<<<
+			strcpy_s(psendbuf0, "M212212212333!");//视觉识别暂时不加，先这样<<<<<<<<<<<<<<<<<<<<<<<
 			printf_s("向arduino发送：%s\n", psendbuf0);
 			WriteFile(m_hComm0, psendbuf0, 30, &dwactlen0, NULL);
 			PurgeComm(m_hComm0, PURGE_TXCLEAR);//每次发完指令都要清空输出寄存器
@@ -433,7 +466,26 @@ void tance() {
 			endflag = 0;
 			printf("程序开始终止……\n");
 		}
-		else {//解析失败后应该让arduino重新发送，这里暂时不写
+		else if (recvBuf0[1] == 'k') {
+			system("python E:\\lalala\\classify_image_inception_v3-1.py");
+			system("python E:\\lalala\\classify_image_inception_v3-2.py");
+			system("python E:\\lalala\\classify_image_inception_v3-3.py");
+			system("python E:\\lalala\\classify_image_inception_v3-4.py");
+			system("python E:\\lalala\\classify_image_inception_v3-5.py");
+			system("python E:\\lalala\\classify_image_inception_v3-6.py");
+			system("python E:\\lalala\\classify_image_inception_v3-7.py");
+			system("python E:\\lalala\\classify_image_inception_v3-8.py");
+			system("python E:\\lalala\\classify_image_inception_v3-9.py");
+			system("python E:\\lalala\\classify_image_inception_v3-10.py");
+			system("python E:\\lalala\\classify_image_inception_v3-11.py");
+			system("python E:\\lalala\\classify_image_inception_v3-12.py");
+			strcpy_s(psendbuf0, "M6!");
+			printf_s("向arduino发送：%s\n", psendbuf0);
+			WriteFile(m_hComm0, psendbuf0, 10, &dwactlen0, NULL);
+			PurgeComm(m_hComm0, PURGE_TXCLEAR);//每次发完指令都要清空输出寄存器
+			memset(psendbuf0, 0, sizeof psendbuf0);//每次发完指令也要清空保存指令的字符串
+		}
+		else{//解析失败后应该让arduino重新发送，这里暂时不写
 			memset(recvBuf0, 0, sizeof recvBuf0);//就算解析失败也要清空字符串
 			printf("解析失败！\n");
 		}

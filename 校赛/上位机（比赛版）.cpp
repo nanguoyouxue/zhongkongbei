@@ -271,9 +271,9 @@ void Close() {
 void tance() {
 	printf("读取中……\n");
 
-	ReadFile(m_hComm0, recvBuf0, 40, &dwLength0, NULL);
+	ReadFile(m_hComm0, recvBuf0, 20, &dwLength0, NULL);
 	printf("收到数据：%s\n", recvBuf0);//输出收到的信息
-	PurgeComm(m_hComm, PURGE_RXCLEAR);//每次接收信息之后清空缓存区
+	PurgeComm(m_hComm0, PURGE_RXCLEAR);//每次接收信息之后清空缓存区
 
 									  //开始解析收到的数据内容
 	if (recvBuf0[0] == 'M') {
@@ -310,7 +310,7 @@ void tance() {
 			memset(recvBuf0, 0, sizeof recvBuf0);
 		}
 		else if (recvBuf0[1] == '7') {
-			strcpy_s(psendbuf0, "M313412214324!");//视觉识别暂时不加，先这样<<<<<<<<<<<<<<<<<<<<<<<
+			strcpy_s(psendbuf0, "M142431221334!");//视觉识别暂时不加，先这样<<<<<<<<<<<<<<<<<<<<<<<
 			printf_s("向arduino发送：%s\n", psendbuf0);
 			WriteFile(m_hComm0, psendbuf0, 30, &dwactlen0, NULL);
 			PurgeComm(m_hComm0, PURGE_TXCLEAR);//每次发完指令都要清空输出寄存器
@@ -366,7 +366,7 @@ void tance() {
 				strcpy_s(psendbuf, "{G0004#000P1800T1000!#001P1500T1000!#002P2250T1000!#003P900T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0005#000P1800T1000!#001P0900T1000!#002P1800T1000!#003P91140T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0006#000P1800T1000!#001P0800T1000!#002P1700T1000!#003P1200T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0007#000P1800T1000!#001P0900T1000!#002P1550T1000!#003P1600T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0007#000P1800T1000!#001P0900T1000!#002P1550T1000!#003P1550T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0008#000P1500T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 			}
 			else if (recvBuf0[2] == '2') {//中间抓
@@ -375,7 +375,7 @@ void tance() {
 				strcpy_s(psendbuf, "{G0002#000P1500T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0003#000P1500T1000!#001P1500T1000!#002P2250T1000!#003P900T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0004#000P1500T1000!#001P1030T1000!#002P2250T1000!#003P900T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0005#000P1500T1000!#001P0900T1000!#002P1800T1000!#003P91140T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0005#000P1500T1000!#001P0900T1000!#002P1800T1000!#003P91120T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0006#000P1500T1000!#001P0800T1000!#002P1700T1000!#003P1200T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0007#000P1500T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 			}
@@ -387,7 +387,7 @@ void tance() {
 				strcpy_s(psendbuf, "{G0004#000P1200T1000!#001P1500T1000!#002P2250T1000!#003P900T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0005#000P1200T1000!#001P0900T1000!#002P1800T1000!#003P91140T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0006#000P1200T1000!#001P0800T1000!#002P1700T1000!#003P1200T1000!#004P1500T1000!#005P2100T1000!}"); arm(psendbuf);
-				strcpy_s(psendbuf, "{G0007#000P1200T1000!#001P0900T1000!#002P1550T1000!#003P1600T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
+				strcpy_s(psendbuf, "{G0007#000P1200T1000!#001P0900T1000!#002P1550T1000!#003P1550T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 				strcpy_s(psendbuf, "{G0008#000P1500T1000!#001P0900T1000!#002P0900T1000!#003P1500T1000!#004P1500T1000!#005P1230T1000!}"); arm(psendbuf);
 			}
 			else if (recvBuf0[2] == '4') {//下面格子
@@ -438,7 +438,7 @@ void tance() {
 			printf("解析失败！\n");
 		}
 	}
-
+	memset(recvBuf0, 0, sizeof recvBuf0);
 	return;
 }
 

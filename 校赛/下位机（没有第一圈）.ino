@@ -118,13 +118,11 @@ void setup() {
              //初始化
   clearing();//初始化马达
   Serial.print("begin");
-  inString = "";//清空
   delay(9000);//比赛开始后要停顿10s（少停一秒节约时间嘿嘿嘿）
 
         //开始运动
   xstraight();
   delay(1200);//因为传感器会把红色识别为白色，所以启动区不识别，直接向前
-  //m=5;n=8;h=2;
   xunxian(4);
   bange();//到达第一个货架前
 
@@ -220,7 +218,7 @@ void setup() {
   flag6=0;//标志值归零
   for(int k=0;k<4;k++){//这里只找下方架子的空
     for(int t=0;t<12;t++){
-      if (t%2==0)things[k][t]=1;
+      if (t%2==0)things[t]=1;
     }
   }
 
@@ -973,6 +971,7 @@ void head(int h, char direction) {
     else if (h == 1) {
       if (fangxiang == 2)Rtright();
       else if (fangxiang == 3) {
+        Serial.println("1111");//M1441114111
         Rtright();
         Rtright();//掉头
       }
@@ -1307,9 +1306,6 @@ void tiaozheng(int ms,int ns,char towards){
 
 void tance(int number){
   for(int i=0;i<6;i++){
-    Serial.print("M51");
-    uartReceive();//接收上位机拍照完毕的回复，开始下一个动作
-    inString = "";
     if(shengbo1()<40)things[number][flag6]=1;//看起来有货物
     else things[number][flag6]=0;
     flag6++;
